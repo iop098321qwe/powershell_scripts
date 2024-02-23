@@ -53,3 +53,7 @@ if ($plainPassword -eq $plainConfirmPassword) {
 } else {
     Write-Host "Passwords do not match. Please try again." -ForegroundColor Red
 }
+
+# Prompt the user to press any key to dismiss the message
+Write-Host "Press any key to continue..."
+$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
