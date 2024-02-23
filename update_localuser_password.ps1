@@ -36,16 +36,11 @@ $confirmPassword = Read-Host -Prompt 'Confirm the new password' -AsSecureString
 $plainConfirmPassword = ConvertTo-PlainText -secureString $confirmPassword
 
 # Check if passwords match
-if ($plainPassword -eq $plainConfirmPassword) {
+if ($password -eq $confirmPassword) {
     # Execute the command to change the password
     try {
-        Set-LocalUser $username $plainPassword
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "Password changed successfully for user $username." -ForegroundColor Green
-        }
-        else {
-            Write-Host "Failed to change password. Please ensure your password meets the system's policy requirements." -ForegroundColor Red
-        }
+        Set-LocalUser -Name $username -Password $password
+        Write-Host "Password changed successfully for user $username." -ForegroundColor Green
     }
     catch {
         Write-Host "An error occurred: $_" -ForegroundColor Red
@@ -53,6 +48,7 @@ if ($plainPassword -eq $plainConfirmPassword) {
 } else {
     Write-Host "Passwords do not match. Please try again." -ForegroundColor Red
 }
+
 
 # Prompt the user to press any key to dismiss the message
 Write-Host "Press any key to continue..."
