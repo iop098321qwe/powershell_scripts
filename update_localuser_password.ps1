@@ -39,7 +39,7 @@ $plainConfirmPassword = ConvertTo-PlainText -secureString $confirmPassword
 if ($plainPassword -eq $plainConfirmPassword) {
     # Execute the command to change the password
     try {
-        net user $username $plainPassword
+        Set-LocalUser $username $plainPassword
         if ($LASTEXITCODE -eq 0) {
             Write-Host "Password changed successfully for user $username." -ForegroundColor Green
         }
