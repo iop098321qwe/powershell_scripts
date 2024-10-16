@@ -17,7 +17,7 @@
     Parameter to specify the maximum number of retry attempts for system checks and repairs.
 
 .VERSION
-    v1.0.3
+    v1.0.4
 
 .AUTHOR
     Dallas Elliott
@@ -82,11 +82,16 @@ while ($attempt -lt $MaxAttempts) {
     # Handle ScanHealth results
     if ($scanHealthExitCode -eq 87) {
         Write-Output "Invalid command line argument detected during ScanHealth. Please verify DISM parameters."
-        if ($DebugMode) { Write-Output "[DEBUG] Exiting with code 87 due to invalid DISM argument." }
+        if ($DebugMode) {
+            Write-Output "[DEBUG] Exiting with code 87 due to invalid DISM argument."
+            Write-Output "[DEBUG] Detailed Exit Code Information: Invalid DISM parameters provided."
+        }
         exit 87
     } elseif ($scanHealthExitCode -eq 0) {
         Write-Output "No component store corruption detected during ScanHealth."
-        if ($DebugMode) { Write-Output "[DEBUG] ScanHealth completed successfully with no errors." }
+        if ($DebugMode) {
+            Write-Output "[DEBUG] ScanHealth completed successfully with no errors."
+        }
     } else {
         Write-Output "Errors detected during ScanHealth (Exit Code: $scanHealthExitCode). Running DISM RestoreHealth..."
         if ($DebugMode) {
@@ -103,7 +108,10 @@ while ($attempt -lt $MaxAttempts) {
 
         if ($restoreHealthExitCode -ne 0) {
             Write-Output "RestoreHealth failed with exit code: $restoreHealthExitCode."
-            if ($DebugMode) { Write-Output "[DEBUG] Exiting with code $restoreHealthExitCode due to RestoreHealth failure." }
+            if ($DebugMode) {
+                Write-Output "[DEBUG] Exiting with code $restoreHealthExitCode due to RestoreHealth failure."
+                Write-Output "[DEBUG] Detailed Exit Code Information: RestoreHealth operation encountered issues that could not be resolved."
+            }
             exit $restoreHealthExitCode
         }
     }
@@ -126,10 +134,15 @@ while ($attempt -lt $MaxAttempts) {
     # Handle CheckHealth results
     if ($checkHealthExitCode -eq 0) {
         Write-Output "No component store corruption detected during CheckHealth."
-        if ($DebugMode) { Write-Output "[DEBUG] CheckHealth completed successfully with no errors." }
+        if ($DebugMode) {
+            Write-Output "[DEBUG] CheckHealth completed successfully with no errors."
+        }
     } elseif ($checkHealthExitCode -eq 87) {
         Write-Output "Invalid command line argument detected during CheckHealth. Please verify DISM parameters."
-        if ($DebugMode) { Write-Output "[DEBUG] Exiting with code 87 due to invalid DISM argument." }
+        if ($DebugMode) {
+            Write-Output "[DEBUG] Exiting with code 87 due to invalid DISM argument."
+            Write-Output "[DEBUG] Detailed Exit Code Information: Invalid DISM parameters provided."
+        }
         exit 87
     } else {
         Write-Output "Errors detected during CheckHealth (Exit Code: $checkHealthExitCode). Running DISM RestoreHealth..."
@@ -147,7 +160,10 @@ while ($attempt -lt $MaxAttempts) {
 
         if ($restoreHealthExitCode -ne 0) {
             Write-Output "RestoreHealth failed with exit code: $restoreHealthExitCode."
-            if ($DebugMode) { Write-Output "[DEBUG] Exiting with code $restoreHealthExitCode due to RestoreHealth failure." }
+            if ($DebugMode) {
+                Write-Output "[DEBUG] Exiting with code $restoreHealthExitCode due to RestoreHealth failure."
+                Write-Output "[DEBUG] Detailed Exit Code Information: RestoreHealth operation encountered issues that could not be resolved."
+            }
             exit $restoreHealthExitCode
         }
     }
@@ -163,5 +179,39 @@ while ($attempt -lt $MaxAttempts) {
 
     if ($DebugMode) {
         Write-Output "[DEBUG] SFC Scan Exit Code: $sfcScanExitCode"
-        Write-Output "[DEBUG]
+        Write-Output "[DEBUG] End Time: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+        Write-Output "----------------------------------------------------------"
+    }
+
+    # Handle SFC results
+    if ($sfcScanExitCode -ne 0) {
+        Write-Output "Errors found during SFC scan (Exit Code: $sfcScanExitCode). Repeating the process once..."
+        if ($DebugMode) {
+            Write-Output "[DEBUG] Incrementing attempt counter and retrying. Attempt: $($attempt + 1)"
+            Write-Output "[DEBUG] Detailed Exit Code Information: SFC encountered issues that could not be automatically repaired."
+        }
+        $attempt++
+    } else {
+        if ($DebugMode) { Write-Output "[DEBUG] SFC scan completed successfully with no errors." }
+        break
+    }
+}
+
+# Output completion message
+if ($sfcScanExitCode -eq 0) {
+    Write-Output "System checks completed successfully. No more errors found."
+    if ($DebugMode) { Write-Output "[DEBUG] System checks finished without any errors." }
+} else {
+    Write-Output "System checks completed with errors that could not be fully resolved. Please review the logs for more details."
+    if ($DebugMode) { Write-Output "[DEBUG] System checks finished with unresolved errors. Final Exit Code: $sfcScanExitCode" }
+}
+
+# Output final attempt count if debug mode is enabled
+if ($DebugMode) {
+    Write-Output "`n====================== DEBUG INFO ======================"
+    Write-Output "Script completed with attempt count: $attempt"
+}
+
+# Pause to allow the user to see the results before closing the terminal
+Read-Host -Prompt "Press Enter to exit"
 
