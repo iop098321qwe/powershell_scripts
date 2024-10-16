@@ -17,7 +17,7 @@
     Parameter to specify the maximum number of retry attempts for system checks and repairs.
 
 .VERSION
-    v1.0.2
+    v1.0.3
 
 .AUTHOR
     Dallas Elliott
@@ -57,105 +57,111 @@ $attempt = 0
 # Loop to perform system checks and repairs
 while ($attempt -lt $MaxAttempts) {
     # Output the current attempt number if debug mode is enabled
-    if ($DebugMode) { Write-Output "`n====================== DEBUG INFO ======================" }
-    if ($DebugMode) { Write-Output "Attempt number: $attempt" }
+    if ($DebugMode) {
+        Write-Output "`n====================== DEBUG INFO ======================"
+        Write-Output "Attempt Number: $attempt"
+        Write-Output "Timestamp: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+        Write-Output "----------------------------------------------------------"
+    }
 
     # Run DISM ScanHealth to check the health of the system image
     Write-Output "Running DISM to perform ScanHealth..."
-    if ($Debug) { Write-Output "[DEBUG] Executing: DISM /Online /Cleanup-Image /ScanHealth" }
+    if ($DebugMode) {
+        Write-Output "[DEBUG] Executing Command: DISM /Online /Cleanup-Image /ScanHealth"
+        Write-Output "[DEBUG] Start Time: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+    }
     Start-Process -FilePath 'DISM' -ArgumentList '/Online', '/Cleanup-Image', '/ScanHealth' -Wait -NoNewWindow -PassThru
     $scanHealthExitCode = $LASTEXITCODE
 
-    # Output the exit code from ScanHealth if debug mode is enabled
-    if ($Debug) { Write-Output "[DEBUG] ScanHealth Exit Code: $scanHealthExitCode" }
+    if ($DebugMode) {
+        Write-Output "[DEBUG] DISM ScanHealth Exit Code: $scanHealthExitCode"
+        Write-Output "[DEBUG] End Time: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+        Write-Output "----------------------------------------------------------"
+    }
 
-    # If ScanHealth found issues (exit code not equal to 0), run RestoreHealth to attempt repairs
+    # Handle ScanHealth results
     if ($scanHealthExitCode -eq 87) {
         Write-Output "Invalid command line argument detected during ScanHealth. Please verify DISM parameters."
-        if ($Debug) { Write-Output "[DEBUG] Exiting with code 87 due to invalid DISM argument." }
+        if ($DebugMode) { Write-Output "[DEBUG] Exiting with code 87 due to invalid DISM argument." }
         exit 87
     } elseif ($scanHealthExitCode -eq 0) {
         Write-Output "No component store corruption detected during ScanHealth."
-        if ($Debug) { Write-Output "[DEBUG] ScanHealth completed successfully with no errors." }
+        if ($DebugMode) { Write-Output "[DEBUG] ScanHealth completed successfully with no errors." }
     } else {
         Write-Output "Errors detected during ScanHealth (Exit Code: $scanHealthExitCode). Running DISM RestoreHealth..."
-        if ($Debug) { Write-Output "[DEBUG] Executing: DISM /Online /Cleanup-Image /RestoreHealth" }
+        if ($DebugMode) {
+            Write-Output "[DEBUG] Executing Command: DISM /Online /Cleanup-Image /RestoreHealth"
+            Write-Output "[DEBUG] Start Time: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+        }
         Start-Process -FilePath 'DISM' -ArgumentList '/Online', '/Cleanup-Image', '/RestoreHealth' -Wait -NoNewWindow -PassThru
         $restoreHealthExitCode = $LASTEXITCODE
-        # Output the exit code from RestoreHealth if debug mode is enabled
-        if ($Debug) { Write-Output "[DEBUG] RestoreHealth Exit Code: $restoreHealthExitCode" }
+        if ($DebugMode) {
+            Write-Output "[DEBUG] DISM RestoreHealth Exit Code: $restoreHealthExitCode"
+            Write-Output "[DEBUG] End Time: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+            Write-Output "----------------------------------------------------------"
+        }
 
         if ($restoreHealthExitCode -ne 0) {
             Write-Output "RestoreHealth failed with exit code: $restoreHealthExitCode."
-            if ($Debug) { Write-Output "[DEBUG] Exiting with code $restoreHealthExitCode due to RestoreHealth failure." }
+            if ($DebugMode) { Write-Output "[DEBUG] Exiting with code $restoreHealthExitCode due to RestoreHealth failure." }
             exit $restoreHealthExitCode
         }
     }
 
     # Run DISM CheckHealth to verify the integrity of the system image after repairs
     Write-Output "Running DISM to perform CheckHealth..."
-    if ($Debug) { Write-Output "[DEBUG] Executing: DISM /Online /Cleanup-Image /CheckHealth" }
+    if ($DebugMode) {
+        Write-Output "[DEBUG] Executing Command: DISM /Online /Cleanup-Image /CheckHealth"
+        Write-Output "[DEBUG] Start Time: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+    }
     Start-Process -FilePath 'DISM' -ArgumentList '/Online', '/Cleanup-Image', '/CheckHealth' -Wait -NoNewWindow -PassThru
     $checkHealthExitCode = $LASTEXITCODE
 
-    # Output the exit code from CheckHealth if debug mode is enabled
-    if ($Debug) { Write-Output "[DEBUG] CheckHealth Exit Code: $checkHealthExitCode" }
+    if ($DebugMode) {
+        Write-Output "[DEBUG] DISM CheckHealth Exit Code: $checkHealthExitCode"
+        Write-Output "[DEBUG] End Time: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+        Write-Output "----------------------------------------------------------"
+    }
 
-    # If CheckHealth found issues (exit code not equal to 0), run RestoreHealth again to attempt repairs
+    # Handle CheckHealth results
     if ($checkHealthExitCode -eq 0) {
         Write-Output "No component store corruption detected during CheckHealth."
-        if ($Debug) { Write-Output "[DEBUG] CheckHealth completed successfully with no errors." }
+        if ($DebugMode) { Write-Output "[DEBUG] CheckHealth completed successfully with no errors." }
     } elseif ($checkHealthExitCode -eq 87) {
         Write-Output "Invalid command line argument detected during CheckHealth. Please verify DISM parameters."
-        if ($Debug) { Write-Output "[DEBUG] Exiting with code 87 due to invalid DISM argument." }
+        if ($DebugMode) { Write-Output "[DEBUG] Exiting with code 87 due to invalid DISM argument." }
         exit 87
     } else {
         Write-Output "Errors detected during CheckHealth (Exit Code: $checkHealthExitCode). Running DISM RestoreHealth..."
-        if ($Debug) { Write-Output "[DEBUG] Executing: DISM /Online /Cleanup-Image /RestoreHealth" }
+        if ($DebugMode) {
+            Write-Output "[DEBUG] Executing Command: DISM /Online /Cleanup-Image /RestoreHealth"
+            Write-Output "[DEBUG] Start Time: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+        }
         Start-Process -FilePath 'DISM' -ArgumentList '/Online', '/Cleanup-Image', '/RestoreHealth' -Wait -NoNewWindow -PassThru
         $restoreHealthExitCode = $LASTEXITCODE
-        # Output the exit code from RestoreHealth if debug mode is enabled
-        if ($Debug) { Write-Output "[DEBUG] RestoreHealth Exit Code: $restoreHealthExitCode" }
+        if ($DebugMode) {
+            Write-Output "[DEBUG] DISM RestoreHealth Exit Code: $restoreHealthExitCode"
+            Write-Output "[DEBUG] End Time: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+            Write-Output "----------------------------------------------------------"
+        }
 
         if ($restoreHealthExitCode -ne 0) {
             Write-Output "RestoreHealth failed with exit code: $restoreHealthExitCode."
-            if ($Debug) { Write-Output "[DEBUG] Exiting with code $restoreHealthExitCode due to RestoreHealth failure." }
+            if ($DebugMode) { Write-Output "[DEBUG] Exiting with code $restoreHealthExitCode due to RestoreHealth failure." }
             exit $restoreHealthExitCode
         }
     }
 
     # Run SFC to check and repair system files
     Write-Output "Running SFC to check and repair system files..."
-    if ($Debug) { Write-Output "[DEBUG] Executing: sfc /scannow" }
+    if ($DebugMode) {
+        Write-Output "[DEBUG] Executing Command: sfc /scannow"
+        Write-Output "[DEBUG] Start Time: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+    }
     Start-Process -FilePath 'sfc' -ArgumentList '/scannow' -Wait -NoNewWindow -PassThru
     $sfcScanExitCode = $LASTEXITCODE
 
-    # Output the exit code from SFC if debug mode is enabled
-    if ($Debug) { Write-Output "[DEBUG] SFC Scan Exit Code: $sfcScanExitCode" }
+    if ($DebugMode) {
+        Write-Output "[DEBUG] SFC Scan Exit Code: $sfcScanExitCode"
+        Write-Output "[DEBUG]
 
-    # If SFC found issues (exit code not equal to 0), increment attempt counter and repeat the process once
-    if ($sfcScanExitCode -ne 0) {
-        Write-Output "Errors found during SFC scan (Exit Code: $sfcScanExitCode), repeating the process once..."
-        if ($Debug) { Write-Output "[DEBUG] Incrementing attempt counter and retrying. Attempt: $($attempt + 1)" }
-        $attempt++
-    } else {
-        if ($Debug) { Write-Output "[DEBUG] SFC scan completed successfully with no errors." }
-        break
-    }
-}
-
-# Output completion message
-if ($sfcScanExitCode -eq 0) {
-    Write-Output "System checks completed successfully. No more errors found."
-    if ($Debug) { Write-Output "[DEBUG] System checks finished without any errors." }
-} else {
-    Write-Output "System checks completed with errors that could not be fully resolved. Please review the logs for more details."
-    if ($Debug) { Write-Output "[DEBUG] System checks finished with unresolved errors. Final Exit Code: $sfcScanExitCode" }
-}
-
-# Output final attempt count if debug mode is enabled
-if ($Debug) { Write-Output "`n====================== DEBUG INFO ======================" }
-if ($Debug) { Write-Output "Script completed with attempt count: $attempt" }
-
-# Pause to allow the user to see the results before closing the terminal
-Read-Host -Prompt "Press Enter to exit"
