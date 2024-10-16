@@ -21,7 +21,7 @@
     When enabled, the script output will be logged to a file named "corruption_checker-YYYY-MM-DD-HH-mm.log".
 
 .VERSION
-    v1.0.7
+    v1.0.8
 
 .AUTHOR
     Dallas Elliott
@@ -241,5 +241,6 @@ if ($sfcScanExitCode -eq 0) {
     if ($DebugMode) { Write-Log "[DEBUG] System checks finished with unresolved errors. Final Exit Code: $sfcScanExitCode" }
 }
 
-# Output final attempt count if 
+# Stop logging if enabled
+if ($Log) { Stop-Transcript }
 
