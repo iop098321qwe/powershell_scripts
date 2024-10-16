@@ -34,7 +34,7 @@
 # Define parameters that the script can accept
 [CmdletBinding()]
 param(
-    [switch]$Debug,        # Switch parameter to enable or disable debug mode for more verbose logging
+    [switch]$DebugMode,        # Switch parameter to enable or disable debug mode for more verbose logging
     [int]$MaxAttempts = 2  # Parameter to specify the maximum number of retry attempts
 )
 
@@ -57,8 +57,8 @@ $attempt = 0
 # Loop to perform system checks and repairs
 while ($attempt -lt $MaxAttempts) {
     # Output the current attempt number if debug mode is enabled
-    if ($Debug) { Write-Output "`n====================== DEBUG INFO ======================" }
-    if ($Debug) { Write-Output "Attempt number: $attempt" }
+    if ($DebugMode) { Write-Output "`n====================== DEBUG INFO ======================" }
+    if ($DebugMode) { Write-Output "Attempt number: $attempt" }
 
     # Run DISM ScanHealth to check the health of the system image
     Write-Output "Running DISM to perform ScanHealth..."
