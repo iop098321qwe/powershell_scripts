@@ -17,7 +17,7 @@
     Parameter to specify the maximum number of retry attempts for system checks and repairs.
 
 .VERSION
-    v1.0.1
+    v1.0.2
 
 .AUTHOR
     Dallas Elliott
