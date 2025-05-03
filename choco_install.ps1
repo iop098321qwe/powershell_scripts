@@ -49,3 +49,5 @@ choco install minecraft-launcher --version 1.0.0.20241010 -y
 choco install obsidian --version 1.8.10 -y
 choco install flameshot --version 12.1.0 -y
 choco install rockstar-launcher --version 1.0.102.2405 -y
+choco install neovim --version 0.11.1 -y
+choco install fzf --version 0.59.0 -y
