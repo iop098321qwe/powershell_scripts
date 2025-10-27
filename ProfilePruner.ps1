@@ -208,17 +208,22 @@ function Should-RemoveProfile {
         [string[]]$AccountFilter
     )
 
-    $withinFilter = $true
     if ($AccountFilter -and $AccountFilter.Count -gt 0) {
-        $withinFilter = $AccountFilter -contains $Profile.AccountName -or $AccountFilter -contains $Profile.SID
-    }
+        foreach ($entry in $AccountFilter) {
+            if ($Profile.AccountName -eq $entry -or $Profile.SID -eq $entry) {
+                return $true
+            }
+        }
 
-    if (-not $withinFilter) {
         return $false
     }
 
     if ($null -eq $Profile.LastUseTimeUtc) {
         return $true
+    }
+
+    if ($null -eq $Cutoff) {
+        return $false
     }
 
     return ($Profile.LastUseTimeUtc -le $Cutoff)
@@ -275,14 +280,21 @@ try {
 
     $listPath = Resolve-ListFilePath -Path $ListFile
     $accounts = @(Get-AccountsFromFile -Path $listPath)
-    if (-not $accounts -or $accounts.Count -eq 0) {
+    $accounts = @($accounts | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    $hasAccountFilter = $accounts.Count -gt 0
+
+    if (-not $hasAccountFilter) {
         Write-Notice "List file '$listPath' did not provide any account filters. All inactive profiles will be considered."
     } else {
         Write-Info "Loaded $($accounts.Count) account(s) from '$listPath'."
+        Write-Info "Profiles matching entries in the list will be targeted regardless of last use time."
     }
 
-    $cutoff = [datetime]::UtcNow.AddDays(-1 * [double]$InactiveDays)
-    Write-Info "Profiles last used on or before $($cutoff.ToString('u')) will be considered inactive."
+    $cutoff = $null
+    if (-not $hasAccountFilter) {
+        $cutoff = [datetime]::UtcNow.AddDays(-1 * [double]$InactiveDays)
+        Write-Info "Profiles last used on or before $($cutoff.ToString('u')) will be considered inactive."
+    }
 
     $profiles = @(Get-LocalProfiles)
     if ($profiles.Count -eq 0) {
