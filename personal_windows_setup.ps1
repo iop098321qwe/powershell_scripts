@@ -86,7 +86,7 @@ function Get-ChocolateyPackagesFromConfig {
         [string]$ConfigUri
     )
 
-    Write-Output "> Downloading Chocolatey package config from $ConfigUri..."
+    Write-Host "> Downloading Chocolatey package config from $ConfigUri..."
 
     $configContent = Invoke-RestMethod -Uri $ConfigUri
     $packages = @(
