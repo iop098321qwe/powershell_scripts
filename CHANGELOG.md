@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.5](https://github.com/iop098321qwe/powershell_scripts/compare/v0.0.4...v0.0.5) (2026-05-08)
+
+
+### Features
+
+* **package:** add `googlechrome` package ([3c625ea](https://github.com/iop098321qwe/powershell_scripts/commit/3c625eabba079ccc09a7cdd5e1de178aa0d7966e))
+
 ## [0.0.4](https://github.com/iop098321qwe/powershell_scripts/compare/v0.0.3...v0.0.4) (2026-05-08)
 
 
