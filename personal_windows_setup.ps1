@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param (
     [string]$Win11DebloatUri = 'https://debloat.raphi.re/',
-    [string[]]$ChocolateyPackages = @('brave', 'firefox')
+    [string]$PackageConfigUri = 'https://raw.githubusercontent.com/iop098321qwe/powershell_scripts/main/personal_windows_setup.config'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -80,6 +80,32 @@ function Install-ChocolateyPackages {
     & $chocoPath install @Packages -y --no-progress
 }
 
+function Get-ChocolateyPackagesFromConfig {
+    param (
+        [Parameter(Mandatory)]
+        [string]$ConfigUri
+    )
+
+    Write-Output "> Downloading Chocolatey package config from $ConfigUri..."
+
+    $configContent = Invoke-RestMethod -Uri $ConfigUri
+    $packages = @(
+        $configContent -split "`r?`n" | ForEach-Object {
+            $line = $_.Trim()
+
+            if ($line -and -not $line.StartsWith('#')) {
+                $line
+            }
+        }
+    )
+
+    if ($packages.Count -eq 0) {
+        throw "No Chocolatey packages were found in $ConfigUri."
+    }
+
+    return $packages
+}
+
 try {
     if ($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage') {
         throw 'PowerShell execution is restricted by security policies. FullLanguage mode is required.'
@@ -102,6 +128,7 @@ try {
     Install-Chocolatey
 
     Write-Section -Message 'Applications'
+    $ChocolateyPackages = Get-ChocolateyPackagesFromConfig -ConfigUri $PackageConfigUri
     Install-ChocolateyPackages -Packages $ChocolateyPackages
 
     Write-Section -Message 'Complete'
