@@ -43,6 +43,27 @@ function Start-ElevatedBootstrap {
     )
 }
 
+function Read-YesNoPrompt {
+    param (
+        [Parameter(Mandatory)]
+        [string]$Prompt
+    )
+
+    while ($true) {
+        $response = (Read-Host "$Prompt (y/n)").Trim().ToLowerInvariant()
+
+        if ($response -in @('y', 'yes')) {
+            return $true
+        }
+
+        if ($response -in @('n', 'no')) {
+            return $false
+        }
+
+        Write-Host "Please enter 'y' or 'n'." -ForegroundColor Yellow
+    }
+}
+
 function Install-Chocolatey {
     if (Get-Command choco.exe -ErrorAction SilentlyContinue) {
         Write-Output '> Chocolatey is already installed.'
@@ -121,8 +142,13 @@ try {
     }
 
     Write-Section -Message 'Win11Debloat'
-    Write-Output '> Launching Raphire Win11Debloat interactively...'
-    & ([scriptblock]::Create((Invoke-RestMethod -Uri $Win11DebloatUri)))
+    if (Read-YesNoPrompt -Prompt 'Run Raphire Win11Debloat?') {
+        Write-Output '> Launching Raphire Win11Debloat interactively...'
+        & ([scriptblock]::Create((Invoke-RestMethod -Uri $Win11DebloatUri)))
+    }
+    else {
+        Write-Output '> Skipping Raphire Win11Debloat.'
+    }
 
     Write-Section -Message 'Chocolatey'
     Install-Chocolatey
