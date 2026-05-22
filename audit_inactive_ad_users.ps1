@@ -5,7 +5,7 @@ param (
 
     [string]$SearchBase,
 
-    [string]$OutputPath
+    [string]$OutputPath = (Join-Path (Get-Location) 'inactive_users.csv')
 )
 
 $ErrorActionPreference = 'Stop'
@@ -33,7 +33,8 @@ Users whose most recent logon is older than this many days will be returned.
 Optional LDAP distinguished name to scope the search (e.g. an OU DN).
 
 .PARAMETER OutputPath
-Optional path to write a CSV export. Objects are always written to the pipeline.
+Path to write a CSV export. Defaults to `inactive_users.csv` in the current
+directory. Objects are always written to the pipeline.
 
 .EXAMPLE
 ./audit_inactive_ad_users.ps1 -DaysInactive 30 -OutputPath .\inactive_users.csv
