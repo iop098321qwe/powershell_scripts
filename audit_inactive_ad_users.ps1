@@ -87,6 +87,10 @@ foreach ($dc in $dcs) {
         $dcUsers = Get-ADUser @adUserParams -Server $dcHost
 
         foreach ($u in $dcUsers) {
+            if (-not $u.Enabled) {
+                continue
+            }
+
             $sid = $u.SID.Value
             if (-not $sid) {
                 continue
@@ -156,6 +160,8 @@ $results = foreach ($entry in $usersBySid.GetEnumerator()) {
         continue
     }
 
+    $hasAuthenticated = [bool]$u.MostRecentLastLogonUtc
+
     [pscustomobject]@{
         SamAccountName         = $u.SamAccountName
         Name                   = $u.Name
@@ -163,6 +169,9 @@ $results = foreach ($entry in $usersBySid.GetEnumerator()) {
         UserPrincipalName      = $u.UserPrincipalName
         Mail                   = $u.Mail
         Enabled                = $u.Enabled
+        AccountStatus          = if ($u.Enabled) { 'Enabled' } else { 'Disabled' }
+        HasAuthenticated       = $hasAuthenticated
+        AuthenticationStatus   = if ($hasAuthenticated) { 'Authenticated' } else { 'NeverAuthenticated' }
         WhenCreatedUtc         = $u.WhenCreatedUtc
         MostRecentLastLogonUtc = $u.MostRecentLastLogonUtc
         MostRecentLastLogonDc  = $u.MostRecentLastLogonDc
