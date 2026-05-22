@@ -14,9 +14,13 @@ recent value per user.
 Objects are always written to the pipeline. Use `-OutputPath` to also export a
 CSV.
 
+By default, the script exports `inactive_users.csv` to the current directory.
+
 Examples:
 
 ```powershell
+./audit_inactive_ad_users.ps1
+
 ./audit_inactive_ad_users.ps1 -DaysInactive 30 -OutputPath .\inactive_users.csv
 
 ./audit_inactive_ad_users.ps1 -SearchBase "OU=Users,DC=example,DC=com" |
