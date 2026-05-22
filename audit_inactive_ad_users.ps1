@@ -1,5 +1,6 @@
 [CmdletBinding()]
 param (
+    [ValidateRange(1, [int]::MaxValue)]
     [int]$DaysInactive = 30,
 
     [string]$SearchBase,
@@ -40,10 +41,6 @@ Optional path to write a CSV export. Objects are always written to the pipeline.
 .EXAMPLE
 ./audit_inactive_ad_users.ps1 -SearchBase "OU=Users,DC=example,DC=com" | Sort-Object DaysSinceLastLogon -Descending
 #>
-
-if ($DaysInactive -lt 1) {
-    throw "DaysInactive must be >= 1. Got: $DaysInactive"
-}
 
 Import-Module ActiveDirectory -ErrorAction Stop
 
