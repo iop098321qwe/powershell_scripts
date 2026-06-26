@@ -120,6 +120,54 @@
       "text": "<ul> <li>service restarter: add service restarter script for aeb caselle service (5dc788f)</li> </ul>",
       "path": ["Changelog"],
       "tags": []
+    },
+    {
+      "location": "scheduled-task-service-restarter/",
+      "level": 1,
+      "title": "Scheduled Task Service Restarter",
+      "text": "<p><code>scheduled_task_service_restarter.ps1</code> checks one Windows service and starts it only when its status is <code>Stopped</code>. It is intended to be run by Windows Task Scheduler on a recurring interval.</p>",
+      "path": ["Scheduled Task Service Restarter"],
+      "tags": []
+    },
+    {
+      "location": "scheduled-task-service-restarter/#find-the-service-name",
+      "level": 2,
+      "title": "Find the Service Name",
+      "text": "<p>Use the exact Windows service name, not the display name.</p> <ol> <li>Open <code>services.msc</code>.</li> <li>Find the service you want to monitor and open its Properties window.</li> <li>Copy the value shown as <code>Service name</code>.</li> </ol> <p>You can also search from PowerShell:</p> <pre><code>Get-Service -Name '*Caselle*'\nGet-Service -DisplayName '*Caselle*'\n</code></pre> <p>Use the <code>Name</code> value returned by PowerShell in the script. For services with tenant or instance suffixes, include the full value, such as <code>CaselleWebService$aleutianseastborough</code>.</p>",
+      "path": ["Scheduled Task Service Restarter"],
+      "tags": []
+    },
+    {
+      "location": "scheduled-task-service-restarter/#update-the-script",
+      "level": 2,
+      "title": "Update the Script",
+      "text": "<ol> <li>Open <code>scheduled_task_service_restarter.ps1</code>.</li> <li>Set <code>$serviceName</code> to the exact service name you found.</li> <li>Save the script in a stable location such as    <code>C:\\Scripts\\scheduled_task_service_restarter.ps1</code>.</li> </ol>",
+      "path": ["Scheduled Task Service Restarter"],
+      "tags": []
+    },
+    {
+      "location": "scheduled-task-service-restarter/#test-the-script-manually",
+      "level": 2,
+      "title": "Test the Script Manually",
+      "text": "<p>Before scheduling the script, run it manually from an elevated PowerShell session or from the same account that the task will use.</p> <pre><code>powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"C:\\Scripts\\scheduled_task_service_restarter.ps1\"\n</code></pre> <p>If the service is already running, the script exits without changing it. To confirm the restart path, stop the service first, then run the script again.</p>",
+      "path": ["Scheduled Task Service Restarter"],
+      "tags": []
+    },
+    {
+      "location": "scheduled-task-service-restarter/#create-a-scheduled-task-in-task-scheduler",
+      "level": 2,
+      "title": "Create a Scheduled Task in Task Scheduler",
+      "text": "<ol> <li>Open Task Scheduler and select <code>Create Task</code>.</li> <li>On <code>General</code>, give the task a clear name and choose an account that has    permission to start the service.</li> <li>Enable <code>Run whether user is logged on or not</code>.</li> <li>Enable <code>Run with highest privileges</code> if the environment requires it.</li> <li>On <code>Triggers</code>, add the schedule you want. A common starting point is every    5 minutes.</li> <li>On <code>Actions</code>, choose <code>Start a program</code> and use the following values:</li> </ol> <pre><code>Program/script: powershell.exe\nAdd arguments: -NoProfile -ExecutionPolicy Bypass -File \"C:\\Scripts\\scheduled_task_service_restarter.ps1\"\nStart in: C:\\Scripts\n</code></pre> <ol> <li>Review <code>Conditions</code> and <code>Settings</code> for anything specific to the server.</li> <li>Save the task and provide credentials if Task Scheduler prompts for them.</li> <li>Use <code>Run</code> from Task Scheduler to verify the task starts the service when it    is stopped.</li> </ol>",
+      "path": ["Scheduled Task Service Restarter"],
+      "tags": []
+    },
+    {
+      "location": "scheduled-task-service-restarter/#troubleshooting",
+      "level": 2,
+      "title": "Troubleshooting",
+      "text": "<ol> <li>If the task runs but the service does not start, verify that the task's    account has permission to start that service.</li> <li>If PowerShell cannot find the service, confirm you used the service name,    not the display name.</li> <li>If the script path contains spaces, keep the <code>-File</code> path wrapped in    double quotes.</li> <li>If execution policy blocks the script, confirm the task action includes    <code>-ExecutionPolicy Bypass</code>, or use your organization's approved script    signing process.</li> </ol>",
+      "path": ["Scheduled Task Service Restarter"],
+      "tags": []
     }
   ]
 }
