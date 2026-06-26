@@ -1,0 +1,125 @@
+{
+  "config": { "separator": "[\\s\\-_,:!=\\[\\]()\\\\\"`/]+|\\.(?!\\d)" },
+  "items": [
+    {
+      "location": "",
+      "level": 1,
+      "title": "Powershell Scripts",
+      "text": "<ul> <li>This is a repository of powershell scripts to perform specific tasks.</li> <li>PowerShell style</li> </ul>",
+      "path": ["Powershell Scripts"],
+      "tags": []
+    },
+    {
+      "location": "CHANGELOG/",
+      "level": 1,
+      "title": "Changelog",
+      "text": "<p>All notable changes to this project will be documented in this file. See commit-and-tag-version for commit guidelines.</p>",
+      "path": ["Changelog"],
+      "tags": []
+    },
+    {
+      "location": "CHANGELOG/#006-2026-05-08",
+      "level": 2,
+      "title": "0.0.6 (2026-05-08)",
+      "text": "",
+      "path": ["Changelog"],
+      "tags": []
+    },
+    {
+      "location": "CHANGELOG/#features",
+      "level": 3,
+      "title": "Features",
+      "text": "<ul> <li>package: add <code>ublockorigin-chrome</code> package (95bdcf7)</li> <li>package: add <code>vlc</code> package (171df6d)</li> <li>package: remove <code>googlechrome</code> package (d805af6)</li> </ul>",
+      "path": ["Changelog"],
+      "tags": []
+    },
+    {
+      "location": "CHANGELOG/#005-2026-05-08",
+      "level": 2,
+      "title": "0.0.5 (2026-05-08)",
+      "text": "",
+      "path": ["Changelog"],
+      "tags": []
+    },
+    {
+      "location": "CHANGELOG/#features_1",
+      "level": 3,
+      "title": "Features",
+      "text": "<ul> <li>package: add <code>googlechrome</code> package (3c625ea)</li> </ul>",
+      "path": ["Changelog"],
+      "tags": []
+    },
+    {
+      "location": "CHANGELOG/#004-2026-05-08",
+      "level": 2,
+      "title": "0.0.4 (2026-05-08)",
+      "text": "",
+      "path": ["Changelog"],
+      "tags": []
+    },
+    {
+      "location": "CHANGELOG/#features_2",
+      "level": 3,
+      "title": "Features",
+      "text": "<ul> <li>prompt before running Win11Debloat (5ef4319)</li> </ul>",
+      "path": ["Changelog"],
+      "tags": []
+    },
+    {
+      "location": "CHANGELOG/#bug-fixes",
+      "level": 3,
+      "title": "Bug Fixes",
+      "text": "<ul> <li>keep package config status out of installs (d47ecfe)</li> </ul>",
+      "path": ["Changelog"],
+      "tags": []
+    },
+    {
+      "location": "CHANGELOG/#003-2026-05-08",
+      "level": 2,
+      "title": "0.0.3 (2026-05-08)",
+      "text": "",
+      "path": ["Changelog"],
+      "tags": []
+    },
+    {
+      "location": "CHANGELOG/#features_3",
+      "level": 3,
+      "title": "Features",
+      "text": "<ul> <li>load setup packages from config (4d16316)</li> <li>package: add <code>libreoffice-fresh</code> package (7ab7ae4)</li> </ul>",
+      "path": ["Changelog"],
+      "tags": []
+    },
+    {
+      "location": "CHANGELOG/#002-2026-05-08",
+      "level": 2,
+      "title": "0.0.2 (2026-05-08)",
+      "text": "",
+      "path": ["Changelog"],
+      "tags": []
+    },
+    {
+      "location": "CHANGELOG/#features_4",
+      "level": 3,
+      "title": "Features",
+      "text": "<ul> <li>add personal windows setup bootstrapper (2b9746d)</li> </ul>",
+      "path": ["Changelog"],
+      "tags": []
+    },
+    {
+      "location": "CHANGELOG/#001-2026-03-13",
+      "level": 2,
+      "title": "0.0.1 (2026-03-13)",
+      "text": "",
+      "path": ["Changelog"],
+      "tags": []
+    },
+    {
+      "location": "CHANGELOG/#features_5",
+      "level": 3,
+      "title": "Features",
+      "text": "<ul> <li>service restarter: add service restarter script for aeb caselle service (5dc788f)</li> </ul>",
+      "path": ["Changelog"],
+      "tags": []
+    }
+  ]
+}

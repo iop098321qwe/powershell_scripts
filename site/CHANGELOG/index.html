@@ -1,0 +1,1018 @@
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+    <meta
+      name="description"
+      content="A new project generated from the default template project."
+    />
+
+    <meta name="author" content="<your name here>" />
+
+    <link rel="prev" href="./.." />
+
+    <link rel="icon" href="../assets/images/favicon.png" />
+    <meta name="generator" content="zensical-0.0.46" />
+
+    <title>Changelog - PowerShell Scripts</title>
+
+    <link
+      rel="stylesheet"
+      href="../assets/stylesheets/modern/main.19d3147f.min.css"
+    />
+
+    <link
+      rel="stylesheet"
+      href="../assets/stylesheets/modern/palette.dfe2e883.min.css"
+    />
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback"
+    />
+    <style>
+      :root {
+        --md-text-font: "Inter";
+        --md-code-font: "JetBrains Mono";
+      }
+    </style>
+
+    <script>
+      ((__md_scope = new URL("..", location)),
+        __md_scope.pathname.endsWith("/") ||
+          (__md_scope = new URL(__md_scope.pathname + "/", location)),
+        (__md_hash = (e) =>
+          [...e].reduce((e, t) => (e << 5) - e + t.charCodeAt(0), 0)),
+        (__md_get = (e, t = localStorage, _ = __md_scope) =>
+          JSON.parse(t.getItem(_.pathname + "." + e))),
+        (__md_set = (e, t, _ = localStorage, a = __md_scope) => {
+          try {
+            _.setItem(a.pathname + "." + e, JSON.stringify(t));
+          } catch (e) {}
+        }),
+        document.documentElement.setAttribute(
+          "data-platform",
+          navigator.platform,
+        ));
+    </script>
+  </head>
+
+  <body
+    dir="ltr"
+    data-md-color-scheme="default"
+    data-md-color-primary="indigo"
+    data-md-color-accent="indigo"
+  >
+    <input
+      class="md-toggle"
+      data-md-toggle="drawer"
+      type="checkbox"
+      id="__drawer"
+      autocomplete="off"
+    />
+    <input
+      class="md-toggle"
+      data-md-toggle="search"
+      type="checkbox"
+      id="__search"
+      autocomplete="off"
+    />
+    <label class="md-overlay" for="__drawer" aria-label="Navigation"></label>
+    <div data-md-component="skip">
+      <a href="#changelog" class="md-skip"> Skip to content </a>
+    </div>
+    <div data-md-component="announce"></div>
+
+    <header class="md-header md-header--shadow" data-md-component="header">
+      <nav class="md-header__inner md-grid" aria-label="Header">
+        <a
+          href="./.."
+          title="PowerShell Scripts"
+          class="md-header__button md-logo"
+          aria-label="PowerShell Scripts"
+          data-md-component="logo"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            class="lucide lucide-book-open"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"
+            />
+          </svg>
+        </a>
+        <label
+          class="md-header__button md-icon"
+          for="__drawer"
+          aria-label="Navigation"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            class="lucide lucide-menu"
+            viewBox="0 0 24 24"
+          >
+            <path d="M4 5h16M4 12h16M4 19h16" />
+          </svg>
+        </label>
+        <div class="md-header__title" data-md-component="header-title">
+          <div class="md-header__ellipsis">
+            <div class="md-header__topic">
+              <span class="md-ellipsis"> PowerShell Scripts </span>
+            </div>
+            <div class="md-header__topic" data-md-component="header-topic">
+              <span class="md-ellipsis"> Changelog </span>
+            </div>
+          </div>
+        </div>
+
+        <form class="md-header__option" data-md-component="palette">
+          <input
+            class="md-option"
+            data-md-color-media="none"
+            data-md-color-scheme="default"
+            data-md-color-primary="indigo"
+            data-md-color-accent="indigo"
+            aria-label="Switch to dark mode"
+            type="radio"
+            name="__palette"
+            id="__palette_0"
+          />
+
+          <label
+            class="md-header__button md-icon"
+            title="Switch to dark mode"
+            for="__palette_1"
+            hidden
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              class="lucide lucide-sun"
+              viewBox="0 0 24 24"
+            >
+              <circle cx="12" cy="12" r="4" />
+              <path
+                d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
+              />
+            </svg>
+          </label>
+
+          <input
+            class="md-option"
+            data-md-color-media="none"
+            data-md-color-scheme="slate"
+            data-md-color-primary="indigo"
+            data-md-color-accent="indigo"
+            aria-label="Switch to light mode"
+            type="radio"
+            name="__palette"
+            id="__palette_1"
+          />
+
+          <label
+            class="md-header__button md-icon"
+            title="Switch to light mode"
+            for="__palette_0"
+            hidden
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              class="lucide lucide-moon"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"
+              />
+            </svg>
+          </label>
+        </form>
+
+        <script>
+          var palette = __md_get("__palette");
+          if (palette && palette.color) {
+            if ("(prefers-color-scheme)" === palette.color.media) {
+              var media = matchMedia("(prefers-color-scheme: light)"),
+                input = document.querySelector(
+                  media.matches
+                    ? "[data-md-color-media='(prefers-color-scheme: light)']"
+                    : "[data-md-color-media='(prefers-color-scheme: dark)']",
+                );
+              ((palette.color.media = input.getAttribute(
+                "data-md-color-media",
+              )),
+                (palette.color.scheme = input.getAttribute(
+                  "data-md-color-scheme",
+                )),
+                (palette.color.primary = input.getAttribute(
+                  "data-md-color-primary",
+                )),
+                (palette.color.accent = input.getAttribute(
+                  "data-md-color-accent",
+                )));
+            }
+            for (var [key, value] of Object.entries(palette.color))
+              document.body.setAttribute("data-md-color-" + key, value);
+          }
+        </script>
+
+        <label
+          class="md-header__button md-icon"
+          for="__search"
+          aria-label="Search"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            class="lucide lucide-search"
+            viewBox="0 0 24 24"
+          >
+            <path d="m21 21-4.34-4.34" />
+            <circle cx="11" cy="11" r="8" />
+          </svg>
+        </label>
+        <div
+          class="md-search"
+          data-md-component="search"
+          role="dialog"
+          aria-label="Search"
+        >
+          <button type="button" class="md-search__button">Search</button>
+        </div>
+
+        <div class="md-header__source"></div>
+      </nav>
+    </header>
+
+    <div class="md-container" data-md-component="container">
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          <div
+            class="md-sidebar md-sidebar--primary"
+            data-md-component="sidebar"
+            data-md-type="navigation"
+          >
+            <div class="md-sidebar__scrollwrap">
+              <div class="md-sidebar__inner">
+                <nav
+                  class="md-nav md-nav--primary"
+                  aria-label="Navigation"
+                  data-md-level="0"
+                >
+                  <label class="md-nav__title" for="__drawer">
+                    <a
+                      href="./.."
+                      title="PowerShell Scripts"
+                      class="md-nav__button md-logo"
+                      aria-label="PowerShell Scripts"
+                      data-md-component="logo"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        class="lucide lucide-book-open"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"
+                        />
+                      </svg>
+                    </a>
+                    PowerShell Scripts
+                  </label>
+
+                  <ul class="md-nav__list" data-md-scrollfix>
+                    <li class="md-nav__item">
+                      <a href="./.." class="md-nav__link">
+                        <span class="md-ellipsis"> Powershell Scripts </span>
+                      </a>
+                    </li>
+
+                    <li class="md-nav__item md-nav__item--active">
+                      <label
+                        class="md-nav__link md-nav__link--active"
+                        for="__toc"
+                      >
+                        <span class="md-ellipsis"> Changelog </span>
+
+                        <span class="md-nav__icon md-icon"></span>
+                      </label>
+
+                      <a href="././" class="md-nav__link md-nav__link--active">
+                        <span class="md-ellipsis"> Changelog </span>
+                      </a>
+
+                      <nav
+                        class="md-nav md-nav--secondary"
+                        aria-label="On this page"
+                      >
+                        <label class="md-nav__title" for="__toc">
+                          <span class="md-nav__icon md-icon"></span>
+                          On this page
+                        </label>
+                        <ul
+                          class="md-nav__list"
+                          data-md-component="toc"
+                          data-md-scrollfix
+                        >
+                          <li class="md-nav__item">
+                            <a href="#006-2026-05-08" class="md-nav__link">
+                              <span class="md-ellipsis">
+                                <span class="md-typeset">
+                                  0.0.6 (2026-05-08)
+                                </span>
+                              </span>
+                            </a>
+
+                            <nav class="md-nav" aria-label="0.0.6 (2026-05-08)">
+                              <ul class="md-nav__list">
+                                <li class="md-nav__item">
+                                  <a href="#features" class="md-nav__link">
+                                    <span class="md-ellipsis">
+                                      <span class="md-typeset"> Features </span>
+                                    </span>
+                                  </a>
+                                </li>
+                              </ul>
+                            </nav>
+                          </li>
+
+                          <li class="md-nav__item">
+                            <a href="#005-2026-05-08" class="md-nav__link">
+                              <span class="md-ellipsis">
+                                <span class="md-typeset">
+                                  0.0.5 (2026-05-08)
+                                </span>
+                              </span>
+                            </a>
+
+                            <nav class="md-nav" aria-label="0.0.5 (2026-05-08)">
+                              <ul class="md-nav__list">
+                                <li class="md-nav__item">
+                                  <a href="#features_1" class="md-nav__link">
+                                    <span class="md-ellipsis">
+                                      <span class="md-typeset"> Features </span>
+                                    </span>
+                                  </a>
+                                </li>
+                              </ul>
+                            </nav>
+                          </li>
+
+                          <li class="md-nav__item">
+                            <a href="#004-2026-05-08" class="md-nav__link">
+                              <span class="md-ellipsis">
+                                <span class="md-typeset">
+                                  0.0.4 (2026-05-08)
+                                </span>
+                              </span>
+                            </a>
+
+                            <nav class="md-nav" aria-label="0.0.4 (2026-05-08)">
+                              <ul class="md-nav__list">
+                                <li class="md-nav__item">
+                                  <a href="#features_2" class="md-nav__link">
+                                    <span class="md-ellipsis">
+                                      <span class="md-typeset"> Features </span>
+                                    </span>
+                                  </a>
+                                </li>
+
+                                <li class="md-nav__item">
+                                  <a href="#bug-fixes" class="md-nav__link">
+                                    <span class="md-ellipsis">
+                                      <span class="md-typeset">
+                                        Bug Fixes
+                                      </span>
+                                    </span>
+                                  </a>
+                                </li>
+                              </ul>
+                            </nav>
+                          </li>
+
+                          <li class="md-nav__item">
+                            <a href="#003-2026-05-08" class="md-nav__link">
+                              <span class="md-ellipsis">
+                                <span class="md-typeset">
+                                  0.0.3 (2026-05-08)
+                                </span>
+                              </span>
+                            </a>
+
+                            <nav class="md-nav" aria-label="0.0.3 (2026-05-08)">
+                              <ul class="md-nav__list">
+                                <li class="md-nav__item">
+                                  <a href="#features_3" class="md-nav__link">
+                                    <span class="md-ellipsis">
+                                      <span class="md-typeset"> Features </span>
+                                    </span>
+                                  </a>
+                                </li>
+                              </ul>
+                            </nav>
+                          </li>
+
+                          <li class="md-nav__item">
+                            <a href="#002-2026-05-08" class="md-nav__link">
+                              <span class="md-ellipsis">
+                                <span class="md-typeset">
+                                  0.0.2 (2026-05-08)
+                                </span>
+                              </span>
+                            </a>
+
+                            <nav class="md-nav" aria-label="0.0.2 (2026-05-08)">
+                              <ul class="md-nav__list">
+                                <li class="md-nav__item">
+                                  <a href="#features_4" class="md-nav__link">
+                                    <span class="md-ellipsis">
+                                      <span class="md-typeset"> Features </span>
+                                    </span>
+                                  </a>
+                                </li>
+                              </ul>
+                            </nav>
+                          </li>
+
+                          <li class="md-nav__item">
+                            <a href="#001-2026-03-13" class="md-nav__link">
+                              <span class="md-ellipsis">
+                                <span class="md-typeset">
+                                  0.0.1 (2026-03-13)
+                                </span>
+                              </span>
+                            </a>
+
+                            <nav class="md-nav" aria-label="0.0.1 (2026-03-13)">
+                              <ul class="md-nav__list">
+                                <li class="md-nav__item">
+                                  <a href="#features_5" class="md-nav__link">
+                                    <span class="md-ellipsis">
+                                      <span class="md-typeset"> Features </span>
+                                    </span>
+                                  </a>
+                                </li>
+                              </ul>
+                            </nav>
+                          </li>
+                        </ul>
+                      </nav>
+                    </li>
+                  </ul>
+                </nav>
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="md-sidebar md-sidebar--secondary"
+            data-md-component="sidebar"
+            data-md-type="toc"
+          >
+            <div class="md-sidebar__scrollwrap">
+              <input
+                class="md-nav__toggle md-toggle"
+                type="checkbox"
+                id="__toc"
+              />
+              <div class="md-sidebar-button__wrapper">
+                <label class="md-sidebar-button" for="__toc"></label>
+              </div>
+
+              <div class="md-sidebar__inner">
+                <nav class="md-nav md-nav--secondary" aria-label="On this page">
+                  <label class="md-nav__title" for="__toc">
+                    <span class="md-nav__icon md-icon"></span>
+                    On this page
+                  </label>
+                  <ul
+                    class="md-nav__list"
+                    data-md-component="toc"
+                    data-md-scrollfix
+                  >
+                    <li class="md-nav__item">
+                      <a href="#006-2026-05-08" class="md-nav__link">
+                        <span class="md-ellipsis">
+                          <span class="md-typeset"> 0.0.6 (2026-05-08) </span>
+                        </span>
+                      </a>
+
+                      <nav class="md-nav" aria-label="0.0.6 (2026-05-08)">
+                        <ul class="md-nav__list">
+                          <li class="md-nav__item">
+                            <a href="#features" class="md-nav__link">
+                              <span class="md-ellipsis">
+                                <span class="md-typeset"> Features </span>
+                              </span>
+                            </a>
+                          </li>
+                        </ul>
+                      </nav>
+                    </li>
+
+                    <li class="md-nav__item">
+                      <a href="#005-2026-05-08" class="md-nav__link">
+                        <span class="md-ellipsis">
+                          <span class="md-typeset"> 0.0.5 (2026-05-08) </span>
+                        </span>
+                      </a>
+
+                      <nav class="md-nav" aria-label="0.0.5 (2026-05-08)">
+                        <ul class="md-nav__list">
+                          <li class="md-nav__item">
+                            <a href="#features_1" class="md-nav__link">
+                              <span class="md-ellipsis">
+                                <span class="md-typeset"> Features </span>
+                              </span>
+                            </a>
+                          </li>
+                        </ul>
+                      </nav>
+                    </li>
+
+                    <li class="md-nav__item">
+                      <a href="#004-2026-05-08" class="md-nav__link">
+                        <span class="md-ellipsis">
+                          <span class="md-typeset"> 0.0.4 (2026-05-08) </span>
+                        </span>
+                      </a>
+
+                      <nav class="md-nav" aria-label="0.0.4 (2026-05-08)">
+                        <ul class="md-nav__list">
+                          <li class="md-nav__item">
+                            <a href="#features_2" class="md-nav__link">
+                              <span class="md-ellipsis">
+                                <span class="md-typeset"> Features </span>
+                              </span>
+                            </a>
+                          </li>
+
+                          <li class="md-nav__item">
+                            <a href="#bug-fixes" class="md-nav__link">
+                              <span class="md-ellipsis">
+                                <span class="md-typeset"> Bug Fixes </span>
+                              </span>
+                            </a>
+                          </li>
+                        </ul>
+                      </nav>
+                    </li>
+
+                    <li class="md-nav__item">
+                      <a href="#003-2026-05-08" class="md-nav__link">
+                        <span class="md-ellipsis">
+                          <span class="md-typeset"> 0.0.3 (2026-05-08) </span>
+                        </span>
+                      </a>
+
+                      <nav class="md-nav" aria-label="0.0.3 (2026-05-08)">
+                        <ul class="md-nav__list">
+                          <li class="md-nav__item">
+                            <a href="#features_3" class="md-nav__link">
+                              <span class="md-ellipsis">
+                                <span class="md-typeset"> Features </span>
+                              </span>
+                            </a>
+                          </li>
+                        </ul>
+                      </nav>
+                    </li>
+
+                    <li class="md-nav__item">
+                      <a href="#002-2026-05-08" class="md-nav__link">
+                        <span class="md-ellipsis">
+                          <span class="md-typeset"> 0.0.2 (2026-05-08) </span>
+                        </span>
+                      </a>
+
+                      <nav class="md-nav" aria-label="0.0.2 (2026-05-08)">
+                        <ul class="md-nav__list">
+                          <li class="md-nav__item">
+                            <a href="#features_4" class="md-nav__link">
+                              <span class="md-ellipsis">
+                                <span class="md-typeset"> Features </span>
+                              </span>
+                            </a>
+                          </li>
+                        </ul>
+                      </nav>
+                    </li>
+
+                    <li class="md-nav__item">
+                      <a href="#001-2026-03-13" class="md-nav__link">
+                        <span class="md-ellipsis">
+                          <span class="md-typeset"> 0.0.1 (2026-03-13) </span>
+                        </span>
+                      </a>
+
+                      <nav class="md-nav" aria-label="0.0.1 (2026-03-13)">
+                        <ul class="md-nav__list">
+                          <li class="md-nav__item">
+                            <a href="#features_5" class="md-nav__link">
+                              <span class="md-ellipsis">
+                                <span class="md-typeset"> Features </span>
+                              </span>
+                            </a>
+                          </li>
+                        </ul>
+                      </nav>
+                    </li>
+                  </ul>
+                </nav>
+              </div>
+            </div>
+          </div>
+
+          <div class="md-content" data-md-component="content">
+            <article class="md-content__inner md-typeset">
+              <h1 id="changelog">
+                Changelog<a
+                  class="headerlink"
+                  href="#changelog"
+                  title="Permanent link"
+                  >&para;</a
+                >
+              </h1>
+              <p>
+                All notable changes to this project will be documented in this
+                file. See
+                <a
+                  href="https://github.com/absolute-version/commit-and-tag-version"
+                  >commit-and-tag-version</a
+                >
+                for commit guidelines.
+              </p>
+              <h2 id="006-2026-05-08">
+                <a
+                  href="https://github.com/iop098321qwe/powershell_scripts/compare/v0.0.5...v0.0.6"
+                  >0.0.6</a
+                >
+                (2026-05-08)<a
+                  class="headerlink"
+                  href="#006-2026-05-08"
+                  title="Permanent link"
+                  >&para;</a
+                >
+              </h2>
+              <h3 id="features">
+                Features<a
+                  class="headerlink"
+                  href="#features"
+                  title="Permanent link"
+                  >&para;</a
+                >
+              </h3>
+              <ul>
+                <li>
+                  <strong>package:</strong> add
+                  <code>ublockorigin-chrome</code> package (<a
+                    href="https://github.com/iop098321qwe/powershell_scripts/commit/95bdcf75b283c4cc1bad35ada5a7c4c434129ed5"
+                    >95bdcf7</a
+                  >)
+                </li>
+                <li>
+                  <strong>package:</strong> add <code>vlc</code> package (<a
+                    href="https://github.com/iop098321qwe/powershell_scripts/commit/171df6d609b36b6029df0d5c60618e546bbd87a1"
+                    >171df6d</a
+                  >)
+                </li>
+                <li>
+                  <strong>package:</strong> remove
+                  <code>googlechrome</code> package (<a
+                    href="https://github.com/iop098321qwe/powershell_scripts/commit/d805af63a5583d5e9d3b18594d9a0287d22629b0"
+                    >d805af6</a
+                  >)
+                </li>
+              </ul>
+              <h2 id="005-2026-05-08">
+                <a
+                  href="https://github.com/iop098321qwe/powershell_scripts/compare/v0.0.4...v0.0.5"
+                  >0.0.5</a
+                >
+                (2026-05-08)<a
+                  class="headerlink"
+                  href="#005-2026-05-08"
+                  title="Permanent link"
+                  >&para;</a
+                >
+              </h2>
+              <h3 id="features_1">
+                Features<a
+                  class="headerlink"
+                  href="#features_1"
+                  title="Permanent link"
+                  >&para;</a
+                >
+              </h3>
+              <ul>
+                <li>
+                  <strong>package:</strong> add
+                  <code>googlechrome</code> package (<a
+                    href="https://github.com/iop098321qwe/powershell_scripts/commit/3c625eabba079ccc09a7cdd5e1de178aa0d7966e"
+                    >3c625ea</a
+                  >)
+                </li>
+              </ul>
+              <h2 id="004-2026-05-08">
+                <a
+                  href="https://github.com/iop098321qwe/powershell_scripts/compare/v0.0.3...v0.0.4"
+                  >0.0.4</a
+                >
+                (2026-05-08)<a
+                  class="headerlink"
+                  href="#004-2026-05-08"
+                  title="Permanent link"
+                  >&para;</a
+                >
+              </h2>
+              <h3 id="features_2">
+                Features<a
+                  class="headerlink"
+                  href="#features_2"
+                  title="Permanent link"
+                  >&para;</a
+                >
+              </h3>
+              <ul>
+                <li>
+                  prompt before running Win11Debloat (<a
+                    href="https://github.com/iop098321qwe/powershell_scripts/commit/5ef4319255ef5f519850ec5878000a1f95864161"
+                    >5ef4319</a
+                  >)
+                </li>
+              </ul>
+              <h3 id="bug-fixes">
+                Bug Fixes<a
+                  class="headerlink"
+                  href="#bug-fixes"
+                  title="Permanent link"
+                  >&para;</a
+                >
+              </h3>
+              <ul>
+                <li>
+                  keep package config status out of installs (<a
+                    href="https://github.com/iop098321qwe/powershell_scripts/commit/d47ecfe83b3d81351f655031fba7085dfc8c9d82"
+                    >d47ecfe</a
+                  >)
+                </li>
+              </ul>
+              <h2 id="003-2026-05-08">
+                <a
+                  href="https://github.com/iop098321qwe/powershell_scripts/compare/v0.0.2...v0.0.3"
+                  >0.0.3</a
+                >
+                (2026-05-08)<a
+                  class="headerlink"
+                  href="#003-2026-05-08"
+                  title="Permanent link"
+                  >&para;</a
+                >
+              </h2>
+              <h3 id="features_3">
+                Features<a
+                  class="headerlink"
+                  href="#features_3"
+                  title="Permanent link"
+                  >&para;</a
+                >
+              </h3>
+              <ul>
+                <li>
+                  load setup packages from config (<a
+                    href="https://github.com/iop098321qwe/powershell_scripts/commit/4d16316e8797f820a844116153b924c987f0ad5b"
+                    >4d16316</a
+                  >)
+                </li>
+                <li>
+                  <strong>package:</strong> add
+                  <code>libreoffice-fresh</code> package (<a
+                    href="https://github.com/iop098321qwe/powershell_scripts/commit/7ab7ae41427af74b93e0aab08b13e661bab3d741"
+                    >7ab7ae4</a
+                  >)
+                </li>
+              </ul>
+              <h2 id="002-2026-05-08">
+                <a
+                  href="https://github.com/iop098321qwe/powershell_scripts/compare/v0.0.1...v0.0.2"
+                  >0.0.2</a
+                >
+                (2026-05-08)<a
+                  class="headerlink"
+                  href="#002-2026-05-08"
+                  title="Permanent link"
+                  >&para;</a
+                >
+              </h2>
+              <h3 id="features_4">
+                Features<a
+                  class="headerlink"
+                  href="#features_4"
+                  title="Permanent link"
+                  >&para;</a
+                >
+              </h3>
+              <ul>
+                <li>
+                  add personal windows setup bootstrapper (<a
+                    href="https://github.com/iop098321qwe/powershell_scripts/commit/2b9746de454929bc6162c07cf0b6f8c65bf6e5cc"
+                    >2b9746d</a
+                  >)
+                </li>
+              </ul>
+              <h2 id="001-2026-03-13">
+                0.0.1 (2026-03-13)<a
+                  class="headerlink"
+                  href="#001-2026-03-13"
+                  title="Permanent link"
+                  >&para;</a
+                >
+              </h2>
+              <h3 id="features_5">
+                Features<a
+                  class="headerlink"
+                  href="#features_5"
+                  title="Permanent link"
+                  >&para;</a
+                >
+              </h3>
+              <ul>
+                <li>
+                  <strong>service restarter:</strong> add service restarter
+                  script for aeb caselle service (<a
+                    href="https://github.com/iop098321qwe/powershell_scripts/commit/5dc788f8dce7325459d565f671cf6cb56e0f1364"
+                    >5dc788f</a
+                  >)
+                </li>
+              </ul>
+            </article>
+          </div>
+
+          <script>
+            var tabs = __md_get("__tabs");
+            if (Array.isArray(tabs))
+              e: for (var set of document.querySelectorAll(".tabbed-set")) {
+                var labels = set.querySelector(".tabbed-labels");
+                for (var tab of tabs)
+                  for (var label of labels.getElementsByTagName("label"))
+                    if (label.innerText.trim() === tab) {
+                      var input = document.getElementById(label.htmlFor);
+                      input.checked = !0;
+                      continue e;
+                    }
+              }
+          </script>
+
+          <script>
+            var target = document.getElementById(location.hash.slice(1));
+            target &&
+              target.name &&
+              (target.checked = target.name.startsWith("__tabbed_"));
+          </script>
+        </div>
+
+        <button
+          type="button"
+          class="md-top md-icon"
+          data-md-component="top"
+          hidden
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            class="lucide lucide-circle-arrow-up"
+            viewBox="0 0 24 24"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path d="m16 12-4-4-4 4M12 16V8" />
+          </svg>
+          Back to top
+        </button>
+      </main>
+
+      <footer class="md-footer">
+        <nav class="md-footer__inner md-grid" aria-label="Footer">
+          <a
+            href="./.."
+            class="md-footer__link md-footer__link--prev"
+            aria-label="Previous: Powershell Scripts"
+          >
+            <div class="md-footer__button md-icon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                class="lucide lucide-arrow-left"
+                viewBox="0 0 24 24"
+              >
+                <path d="m12 19-7-7 7-7M19 12H5" />
+              </svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction"> Previous </span>
+              <div class="md-ellipsis">Powershell Scripts</div>
+            </div>
+          </a>
+        </nav>
+
+        <div class="md-footer-meta md-typeset">
+          <div class="md-footer-meta__inner md-grid">
+            <div class="md-copyright">
+              <div class="md-copyright__highlight">
+                Copyright &copy; 2026 The authors
+              </div>
+
+              Made with
+              <a href="https://zensical.org/" target="_blank" rel="noopener">
+                Zensical
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+
+    <script id="__config" type="application/json">
+      {
+        "annotate": null,
+        "base": "..",
+        "features": [
+          "announce.dismiss",
+          "content.code.annotate",
+          "content.code.copy",
+          "content.code.select",
+          "content.footnote.tooltips",
+          "content.tabs.link",
+          "content.tooltips",
+          "navigation.footer",
+          "navigation.indexes",
+          "navigation.instant",
+          "navigation.instant.prefetch",
+          "navigation.path",
+          "navigation.sections",
+          "navigation.top",
+          "navigation.tracking",
+          "search.highlight"
+        ],
+        "search": "../assets/javascripts/workers/search.b6b7e04f.min.js",
+        "tags": null,
+        "translations": {
+          "clipboard.copied": "Copied to clipboard",
+          "clipboard.copy": "Copy to clipboard",
+          "search.result.more.one": "1 more on this page",
+          "search.result.more.other": "# more on this page",
+          "search.result.none": "No matching documents",
+          "search.result.one": "1 matching document",
+          "search.result.other": "# matching documents",
+          "search.result.placeholder": "Type to start searching",
+          "search.result.term.missing": "Missing",
+          "select.version": "Select version"
+        },
+        "version": null
+      }
+    </script>
+
+    <script src="../assets/javascripts/bundle.ee611ef6.min.js"></script>
+  </body>
+</html>
