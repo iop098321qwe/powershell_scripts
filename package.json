@@ -1,0 +1,26 @@
+{
+  "name": "powershell_scripts",
+  "version": "0.0.6",
+  "description": "* This is a repository of powershell scripts to perform specific tasks. * PowerShell style",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iop098321qwe/powershell_scripts.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/iop098321qwe/powershell_scripts/issues"
+  },
+  "homepage": "https://github.com/iop098321qwe/powershell_scripts#readme",
+  "devDependencies": {
+    "@commitlint/cli": "^21.1.0",
+    "@commitlint/config-conventional": "^21.1.0",
+    "husky": "^9.1.7"
+  }
+}
