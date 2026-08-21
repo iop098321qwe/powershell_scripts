@@ -271,8 +271,11 @@ function Search-AdUsersByName {
     )
 }
 
-function Get-AdUserSelectionLabel {
+function Write-AdUserSelectionEntry {
     param (
+        [Parameter(Mandatory)]
+        [int]$Number,
+
         [Parameter(Mandatory)]
         [object]$User
     )
@@ -296,12 +299,11 @@ function Get-AdUserSelectionLabel {
         -CanonicalName $User.CanonicalName `
         -DistinguishedName $User.DistinguishedName
 
-    return '{0} | {1} | {2} | {3} | {4}' -f `
-        $displayName, `
-        $User.SamAccountName, `
-        $userPrincipalName, `
-        $accountStatus, `
-        $currentLocation
+    Write-Host ("[{0}] {1}" -f $Number, $displayName)
+    Write-DetailLine -Label 'Username' -Value $User.SamAccountName
+    Write-DetailLine -Label 'Sign-in address' -Value $userPrincipalName
+    Write-DetailLine -Label 'Account status' -Value $accountStatus
+    Write-DetailLine -Label 'Current location' -Value $currentLocation
 }
 
 function Select-TargetAdUser {
@@ -327,16 +329,17 @@ function Select-TargetAdUser {
         }
 
         Write-Host ''
-        Write-Host ("Matching users for '{0}':" -f $identity)
-        for ($index = 0; $index -lt $matchingUsers.Count; $index++) {
-            $number = $index + 1
-            Write-Host ("[{0}] {1}" -f $number, (Get-AdUserSelectionLabel -User $matchingUsers[$index]))
-        }
-
+        Write-Host ("Matching users for '{0}' ({1} found):" -f $identity, $matchingUsers.Count)
         Write-Host ''
 
+        for ($index = 0; $index -lt $matchingUsers.Count; $index++) {
+            $number = $index + 1
+            Write-AdUserSelectionEntry -Number $number -User $matchingUsers[$index]
+            Write-Host ''
+        }
+
         while ($true) {
-            $selection = (Read-Host 'Enter the user number to continue, or Q to search again').Trim()
+            $selection = (Read-Host 'Enter the user number to select, or Q to search again').Trim()
 
             if ($selection -match '^(q|quit|search)$') {
                 Write-Host 'Search selection cleared. Enter another username or name.'
