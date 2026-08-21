@@ -596,7 +596,7 @@ function Select-TargetOrganizationalUnit {
         Write-Host ''
         Write-Host "Selected destination: $selectedOuLocation"
 
-        if (Read-YesNoPrompt -Prompt "Move '$($User.SamAccountName)' to this location" -DefaultAnswer No) {
+        if (Read-YesNoPrompt -Prompt "Move '$($User.SamAccountName)' to this location" -DefaultAnswer None) {
             return $selectedOu
         }
 
@@ -662,7 +662,7 @@ try {
     Write-DetailLine -Label 'Current location' -Value $currentLocation
     Write-Output ''
 
-    if (-not (Read-YesNoPrompt -Prompt 'Is this the correct account to disable' -DefaultAnswer No)) {
+    if (-not (Read-YesNoPrompt -Prompt 'Is this the correct account to disable' -DefaultAnswer None)) {
         Write-Output 'Target user was not confirmed. Exiting without making changes.'
         Wait-ForExit
         exit 0
