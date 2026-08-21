@@ -61,7 +61,7 @@ function Write-Step {
         [string]$Message
     )
 
-    Write-Output "> $Message"
+    Write-Host "> $Message"
 }
 
 function Read-YesNoPrompt {
@@ -361,26 +361,52 @@ function Read-NewPassword {
     }
 }
 
+function Get-DomainDistinguishedName {
+    param (
+        [Parameter(Mandatory)]
+        [string]$DistinguishedName
+    )
+
+    $domainComponents = @(
+        [regex]::Matches($DistinguishedName, '(?i)(?:^|,)(DC=(?:\\.|[^,])+)') |
+            ForEach-Object { $_.Groups[1].Value }
+    )
+
+    if ($domainComponents.Count -eq 0) {
+        throw "Could not determine the user's domain from '$DistinguishedName'."
+    }
+
+    return ($domainComponents -join ',')
+}
+
 function Select-TargetOrganizationalUnit {
     param (
         [Parameter(Mandatory)]
         [object]$User
     )
 
+    $userDomainDn = Get-DomainDistinguishedName -DistinguishedName $User.DistinguishedName
     $organizationalUnits = @(
-        Get-ADOrganizationalUnit -Filter * -Properties Name, DistinguishedName -ErrorAction Stop |
+        Get-ADOrganizationalUnit `
+            -Filter * `
+            -SearchBase $userDomainDn `
+            -SearchScope Subtree `
+            -Properties Name, DistinguishedName `
+            -ErrorAction Stop |
             Sort-Object -Property DistinguishedName
     )
 
     if ($organizationalUnits.Count -eq 0) {
-        throw 'No Organizational Units were found in Active Directory.'
+        throw "No Organizational Units were found under '$userDomainDn'."
     }
 
-    Write-Output 'Available Organizational Units:'
+    Write-Host "Available Organizational Units under $userDomainDn:"
     for ($index = 0; $index -lt $organizationalUnits.Count; $index++) {
         $number = $index + 1
-        Write-Output ("[{0}] {1}" -f $number, $organizationalUnits[$index].DistinguishedName)
+        Write-Host ("[{0}] {1}" -f $number, $organizationalUnits[$index].DistinguishedName)
     }
+
+    Write-Host ''
 
     while ($true) {
         $selection = (Read-Host 'Enter the OU number to move the user into, or Q to skip the move').Trim()
@@ -401,14 +427,14 @@ function Select-TargetOrganizationalUnit {
         }
 
         $selectedOu = $organizationalUnits[$selectionNumber - 1]
-        Write-Output ''
-        Write-Output "Selected OU: $($selectedOu.DistinguishedName)"
+        Write-Host ''
+        Write-Host "Selected OU: $($selectedOu.DistinguishedName)"
 
         if (Read-YesNoPrompt -Prompt "Move '$($User.SamAccountName)' to this OU") {
             return $selectedOu
         }
 
-        Write-Output 'Move not confirmed. Choose again.'
+        Write-Host 'Move not confirmed. Choose again.'
     }
 }
 
