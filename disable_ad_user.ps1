@@ -5,9 +5,10 @@ Disable an Active Directory user account and archive group memberships.
 .DESCRIPTION
 Prompts for an Active Directory username, writes the user's primary group and
 direct memberOf group names to the Public Documents folder, updates the user's
-description, disables the account, removes non-default group memberships,
-resets the password, sets the password to never expire, and optionally moves
-the user to a selected Organizational Unit.
+description, disables the account, optionally hides the user from address lists,
+removes non-default group memberships, resets the password, sets the password
+to never expire, and optionally moves the user to a selected Organizational
+Unit.
 
 This script is intended to be run on a domain controller from an elevated
 PowerShell window by an account with permission to modify users, groups, and
@@ -628,6 +629,18 @@ try {
     Write-Step 'Disabling the user account...'
     Disable-ADAccount -Identity $user.DistinguishedName -ErrorAction Stop
 
+    Write-Section -Message 'Address Lists'
+    $addressListVisibility = 'No change requested'
+
+    if (Read-YesNoPrompt -Prompt 'Hide this user from address lists' -DefaultAnswer Yes) {
+        Write-Step 'Hiding the user from address lists...'
+        Set-ADUser -Identity $user.DistinguishedName -Replace @{ msExchHideFromAddressLists = $true } -ErrorAction Stop
+        $addressListVisibility = 'Hidden'
+    }
+    else {
+        Write-Step 'Address list visibility left unchanged by operator selection.'
+    }
+
     Write-Section -Message 'Remove Group Memberships'
     $primaryGroupChanged = $false
 
@@ -738,6 +751,7 @@ try {
     Write-Output "User: $($user.SamAccountName)"
     Write-Output "Description set to: $disabledDescription"
     Write-Output 'Account disabled: Yes'
+    Write-Output "Address list visibility: $addressListVisibility"
     Write-Output "Group export file: $groupExportPath"
     Write-Output "Non-default groups removed: $($removedGroups.Count)"
 
