@@ -1,1 +1,2 @@
 x 2026-08-21 2026-08-21 make groups doc .txt and human readable @fix due:2026-08-21
+x 2026-08-21 2026-08-21 add option to toggle hide from address lists @feat due:2026-08-21

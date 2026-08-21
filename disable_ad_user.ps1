@@ -5,9 +5,10 @@ Disable an Active Directory user account and archive group memberships.
 .DESCRIPTION
 Prompts for an Active Directory username, writes the user's primary group and
 direct memberOf group names to the Public Documents folder, updates the user's
-description, disables the account, removes non-default group memberships,
-resets the password, sets the password to never expire, and optionally moves
-the user to a selected Organizational Unit.
+description, disables the account, optionally hides the user from address lists,
+removes non-default group memberships, resets the password, sets the password
+to never expire, and optionally moves the user to a selected Organizational
+Unit.
 
 This script is intended to be run on a domain controller from an elevated
 PowerShell window by an account with permission to modify users, groups, and
@@ -67,11 +68,30 @@ function Write-Step {
 function Read-YesNoPrompt {
     param (
         [Parameter(Mandatory)]
-        [string]$Prompt
+        [string]$Prompt,
+
+        [ValidateSet('Yes', 'No', 'None')]
+        [string]$DefaultAnswer = 'None'
     )
 
+    $promptSuffix = switch ($DefaultAnswer) {
+        'Yes' { '(Y/n)' }
+        'No' { '(y/N)' }
+        default { '(y/n)' }
+    }
+
     while ($true) {
-        $response = (Read-Host "$Prompt (y/n)").Trim().ToLowerInvariant()
+        $response = (Read-Host "$Prompt $promptSuffix").Trim().ToLowerInvariant()
+
+        if ([string]::IsNullOrWhiteSpace($response)) {
+            if ($DefaultAnswer -eq 'Yes') {
+                return $true
+            }
+
+            if ($DefaultAnswer -eq 'No') {
+                return $false
+            }
+        }
 
         if ($response -in @('y', 'yes')) {
             return $true
@@ -81,7 +101,12 @@ function Read-YesNoPrompt {
             return $false
         }
 
-        Write-Host "Please enter 'y' or 'n'." -ForegroundColor Yellow
+        if ($DefaultAnswer -eq 'None') {
+            Write-Host "Please enter 'y' or 'n'." -ForegroundColor Yellow
+        }
+        else {
+            Write-Host "Please enter 'y', 'n', or press Enter for $($DefaultAnswer.ToLowerInvariant())." -ForegroundColor Yellow
+        }
     }
 }
 
@@ -522,7 +547,7 @@ function Select-TargetOrganizationalUnit {
         Write-Host ''
         Write-Host "Selected OU: $($selectedOu.DistinguishedName)"
 
-        if (Read-YesNoPrompt -Prompt "Move '$($User.SamAccountName)' to this OU") {
+        if (Read-YesNoPrompt -Prompt "Move '$($User.SamAccountName)' to this OU" -DefaultAnswer No) {
             return $selectedOu
         }
 
@@ -555,7 +580,7 @@ try {
         Write-Warning 'This script must run in an elevated PowerShell window.'
         Write-Output 'No Active Directory changes will be made from this unelevated session.'
 
-        if (Read-YesNoPrompt -Prompt 'Relaunch this script as Administrator now') {
+        if (Read-YesNoPrompt -Prompt 'Relaunch this script as Administrator now' -DefaultAnswer Yes) {
             Start-ElevatedScript
             exit 0
         }
@@ -578,7 +603,7 @@ try {
     Write-Output "Enabled: $($user.Enabled)"
     Write-Output "DistinguishedName: $($user.DistinguishedName)"
 
-    if (-not (Read-YesNoPrompt -Prompt 'Continue disabling this user')) {
+    if (-not (Read-YesNoPrompt -Prompt 'Continue disabling this user' -DefaultAnswer No)) {
         Write-Output 'Target user was not confirmed. Exiting without making changes.'
         exit 0
     }
@@ -603,6 +628,18 @@ try {
 
     Write-Step 'Disabling the user account...'
     Disable-ADAccount -Identity $user.DistinguishedName -ErrorAction Stop
+
+    Write-Section -Message 'Address Lists'
+    $addressListVisibility = 'No change requested'
+
+    if (Read-YesNoPrompt -Prompt 'Hide this user from address lists' -DefaultAnswer Yes) {
+        Write-Step 'Hiding the user from address lists...'
+        Set-ADUser -Identity $user.DistinguishedName -Replace @{ msExchHideFromAddressLists = $true } -ErrorAction Stop
+        $addressListVisibility = 'Hidden'
+    }
+    else {
+        Write-Step 'Address list visibility left unchanged by operator selection.'
+    }
 
     Write-Section -Message 'Remove Group Memberships'
     $primaryGroupChanged = $false
@@ -714,6 +751,7 @@ try {
     Write-Output "User: $($user.SamAccountName)"
     Write-Output "Description set to: $disabledDescription"
     Write-Output 'Account disabled: Yes'
+    Write-Output "Address list visibility: $addressListVisibility"
     Write-Output "Group export file: $groupExportPath"
     Write-Output "Non-default groups removed: $($removedGroups.Count)"
 
