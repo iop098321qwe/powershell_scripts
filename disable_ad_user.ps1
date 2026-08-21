@@ -354,6 +354,118 @@ function Get-DomainDistinguishedName {
     return ($domainComponents -join ',')
 }
 
+function Get-ParentDistinguishedName {
+    param (
+        [Parameter(Mandatory)]
+        [string]$DistinguishedName
+    )
+
+    for ($index = 0; $index -lt $DistinguishedName.Length; $index++) {
+        if ($DistinguishedName[$index] -eq [char]'\') {
+            $index++
+            continue
+        }
+
+        if ($DistinguishedName[$index] -eq [char]',') {
+            return $DistinguishedName.Substring($index + 1)
+        }
+    }
+
+    return $null
+}
+
+function Add-OrganizationalUnitMenuEntries {
+    param (
+        [Parameter(Mandatory)]
+        [string]$ParentDistinguishedName,
+
+        [Parameter(Mandatory)]
+        [hashtable]$ChildrenByParentDistinguishedName,
+
+        [Parameter(Mandatory)]
+        [System.Collections.Generic.List[object]]$MenuEntries,
+
+        [string]$Prefix = '',
+
+        [int]$Depth = 0
+    )
+
+    if (-not $ChildrenByParentDistinguishedName.ContainsKey($ParentDistinguishedName)) {
+        return
+    }
+
+    $children = @(
+        $ChildrenByParentDistinguishedName[$ParentDistinguishedName] |
+            Sort-Object -Property Name, DistinguishedName
+    )
+
+    for ($index = 0; $index -lt $children.Count; $index++) {
+        $child = $children[$index]
+        $isLastChild = $index -eq ($children.Count - 1)
+
+        if ($Depth -eq 0) {
+            $displayName = $child.Name
+            $childPrefix = ''
+        }
+        else {
+            $connector = if ($isLastChild) { '`-- ' } else { '|-- ' }
+            $displayName = "$Prefix$connector$($child.Name)"
+            $childPrefix = if ($isLastChild) { "$Prefix    " } else { "$Prefix|   " }
+        }
+
+        [void]$MenuEntries.Add([pscustomobject]@{
+            DisplayName = $displayName
+            OrganizationalUnit = $child
+        })
+
+        Add-OrganizationalUnitMenuEntries `
+            -ParentDistinguishedName $child.DistinguishedName `
+            -ChildrenByParentDistinguishedName $ChildrenByParentDistinguishedName `
+            -MenuEntries $MenuEntries `
+            -Prefix $childPrefix `
+            -Depth ($Depth + 1)
+    }
+}
+
+function Get-OrganizationalUnitMenuEntries {
+    param (
+        [Parameter(Mandatory)]
+        [object[]]$OrganizationalUnits,
+
+        [Parameter(Mandatory)]
+        [string]$DomainDistinguishedName
+    )
+
+    $organizationalUnitsByDn = @{}
+    foreach ($organizationalUnit in @($OrganizationalUnits)) {
+        $organizationalUnitsByDn[$organizationalUnit.DistinguishedName] = $organizationalUnit
+    }
+
+    $childrenByParentDistinguishedName = @{}
+    foreach ($organizationalUnit in @($OrganizationalUnits)) {
+        $parentDistinguishedName = Get-ParentDistinguishedName -DistinguishedName $organizationalUnit.DistinguishedName
+
+        if ([string]::IsNullOrWhiteSpace($parentDistinguishedName) -or
+            -not $organizationalUnitsByDn.ContainsKey($parentDistinguishedName)) {
+            $parentDistinguishedName = $DomainDistinguishedName
+        }
+
+        if (-not $childrenByParentDistinguishedName.ContainsKey($parentDistinguishedName)) {
+            $childrenByParentDistinguishedName[$parentDistinguishedName] = [System.Collections.Generic.List[object]]::new()
+        }
+
+        [void]$childrenByParentDistinguishedName[$parentDistinguishedName].Add($organizationalUnit)
+    }
+
+    $menuEntries = [System.Collections.Generic.List[object]]::new()
+    Add-OrganizationalUnitMenuEntries `
+        -ParentDistinguishedName $DomainDistinguishedName `
+        -ChildrenByParentDistinguishedName $childrenByParentDistinguishedName `
+        -MenuEntries $menuEntries
+
+    return @($menuEntries)
+}
+
 function Select-TargetOrganizationalUnit {
     param (
         [Parameter(Mandatory)]
@@ -368,17 +480,21 @@ function Select-TargetOrganizationalUnit {
             -SearchScope Subtree `
             -Properties Name, DistinguishedName `
             -ErrorAction Stop |
-            Sort-Object -Property DistinguishedName
+            Sort-Object -Property Name, DistinguishedName
     )
 
     if ($organizationalUnits.Count -eq 0) {
         throw "No Organizational Units were found under '$userDomainDn'."
     }
 
+    $organizationalUnitMenuEntries = Get-OrganizationalUnitMenuEntries `
+        -OrganizationalUnits $organizationalUnits `
+        -DomainDistinguishedName $userDomainDn
+
     Write-Host ('Available Organizational Units under {0}:' -f $userDomainDn)
-    for ($index = 0; $index -lt $organizationalUnits.Count; $index++) {
+    for ($index = 0; $index -lt $organizationalUnitMenuEntries.Count; $index++) {
         $number = $index + 1
-        Write-Host ("[{0}] {1}" -f $number, $organizationalUnits[$index].DistinguishedName)
+        Write-Host ("[{0}] {1}" -f $number, $organizationalUnitMenuEntries[$index].DisplayName)
     }
 
     Write-Host ''
@@ -396,12 +512,12 @@ function Select-TargetOrganizationalUnit {
             continue
         }
 
-        if ($selectionNumber -lt 1 -or $selectionNumber -gt $organizationalUnits.Count) {
+        if ($selectionNumber -lt 1 -or $selectionNumber -gt $organizationalUnitMenuEntries.Count) {
             Write-Host 'That number is not in the OU list.' -ForegroundColor Yellow
             continue
         }
 
-        $selectedOu = $organizationalUnits[$selectionNumber - 1]
+        $selectedOu = $organizationalUnitMenuEntries[$selectionNumber - 1].OrganizationalUnit
         Write-Host ''
         Write-Host "Selected OU: $($selectedOu.DistinguishedName)"
 
