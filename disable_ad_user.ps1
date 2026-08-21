@@ -65,6 +65,27 @@ function Write-Step {
     Write-Host "> $Message"
 }
 
+function Write-DetailLine {
+    param (
+        [Parameter(Mandatory)]
+        [string]$Label,
+
+        [AllowEmptyString()]
+        [string]$Value,
+
+        [string]$Fallback = 'Not available'
+    )
+
+    $displayValue = if ([string]::IsNullOrWhiteSpace($Value)) {
+        $Fallback
+    }
+    else {
+        $Value.Trim()
+    }
+
+    Write-Output ('  {0,-22} {1}' -f ('{0}:' -f $Label), $displayValue)
+}
+
 function Read-YesNoPrompt {
     param (
         [Parameter(Mandatory)]
@@ -181,6 +202,26 @@ function ConvertTo-LdapFilterValue {
     }
 
     return $builder.ToString()
+}
+
+function Get-ReadableDirectoryLocation {
+    param (
+        [AllowEmptyString()]
+        [string]$CanonicalName,
+
+        [AllowEmptyString()]
+        [string]$DistinguishedName
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace($CanonicalName)) {
+        return $CanonicalName.TrimEnd('/')
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($DistinguishedName)) {
+        return $DistinguishedName.Trim()
+    }
+
+    return 'Not available'
 }
 
 function Resolve-AdUser {
@@ -508,7 +549,7 @@ function Select-TargetOrganizationalUnit {
             -Filter * `
             -SearchBase $userDomainDn `
             -SearchScope Subtree `
-            -Properties Name, DistinguishedName `
+            -Properties Name, DistinguishedName, CanonicalName `
             -ErrorAction Stop |
             Sort-Object -Property Name, DistinguishedName
     )
@@ -548,14 +589,18 @@ function Select-TargetOrganizationalUnit {
         }
 
         $selectedOu = $organizationalUnitMenuEntries[$selectionNumber - 1].OrganizationalUnit
-        Write-Host ''
-        Write-Host "Selected OU: $($selectedOu.DistinguishedName)"
+        $selectedOuLocation = Get-ReadableDirectoryLocation `
+            -CanonicalName $selectedOu.CanonicalName `
+            -DistinguishedName $selectedOu.DistinguishedName
 
-        if (Read-YesNoPrompt -Prompt "Move '$($User.SamAccountName)' to this OU" -DefaultAnswer No) {
+        Write-Host ''
+        Write-Host "Selected destination: $selectedOuLocation"
+
+        if (Read-YesNoPrompt -Prompt "Move '$($User.SamAccountName)' to this location" -DefaultAnswer No) {
             return $selectedOu
         }
 
-        Write-Host 'Move not confirmed. Choose again.'
+        Write-Host 'Move not confirmed. Choose another location or skip.'
     }
 }
 
@@ -602,13 +647,22 @@ try {
     $user = Resolve-AdUser -Identity $username
 
     Write-Section -Message 'Confirm Target User'
-    Write-Output "DisplayName: $($user.DisplayName)"
-    Write-Output "SamAccountName: $($user.SamAccountName)"
-    Write-Output "UserPrincipalName: $($user.UserPrincipalName)"
-    Write-Output "Enabled: $($user.Enabled)"
-    Write-Output "DistinguishedName: $($user.DistinguishedName)"
+    $accountStatus = if ($user.Enabled) { 'Enabled' } else { 'Disabled' }
+    $currentLocation = Get-ReadableDirectoryLocation `
+        -CanonicalName $user.CanonicalName `
+        -DistinguishedName $user.DistinguishedName
 
-    if (-not (Read-YesNoPrompt -Prompt 'Continue disabling this user' -DefaultAnswer No)) {
+    Write-Output 'Please review the account below before continuing:'
+    Write-Output ''
+    Write-DetailLine -Label 'Name' -Value $user.DisplayName -Fallback $user.SamAccountName
+    Write-DetailLine -Label 'Username' -Value $user.SamAccountName
+    Write-DetailLine -Label 'Sign-in address' -Value $user.UserPrincipalName
+    Write-DetailLine -Label 'Account status' -Value $accountStatus
+    Write-DetailLine -Label 'Current description' -Value $user.Description -Fallback 'No description set'
+    Write-DetailLine -Label 'Current location' -Value $currentLocation
+    Write-Output ''
+
+    if (-not (Read-YesNoPrompt -Prompt 'Is this the correct account to disable' -DefaultAnswer No)) {
         Write-Output 'Target user was not confirmed. Exiting without making changes.'
         Wait-ForExit
         exit 0
@@ -636,7 +690,7 @@ try {
     Disable-ADAccount -Identity $user.DistinguishedName -ErrorAction Stop
 
     Write-Section -Message 'Address Lists'
-    $addressListVisibility = 'No change requested'
+    $addressListVisibility = 'Left unchanged'
 
     if (Read-YesNoPrompt -Prompt 'Hide this user from address lists' -DefaultAnswer Yes) {
         Write-Step 'Hiding the user from address lists...'
@@ -744,9 +798,13 @@ try {
     $movedToOu = $null
 
     if ($null -ne $targetOu) {
-        Write-Step "Moving user to '$($targetOu.DistinguishedName)'..."
+        $targetOuLocation = Get-ReadableDirectoryLocation `
+            -CanonicalName $targetOu.CanonicalName `
+            -DistinguishedName $targetOu.DistinguishedName
+
+        Write-Step "Moving user to '$targetOuLocation'..."
         Move-ADObject -Identity $user.DistinguishedName -TargetPath $targetOu.DistinguishedName -ErrorAction Stop
-        $movedToOu = $targetOu.DistinguishedName
+        $movedToOu = $targetOuLocation
         $user = Get-ADUser -Identity $user.ObjectGUID -Properties $script:AdUserProperties -ErrorAction Stop
     }
     else {
@@ -754,27 +812,52 @@ try {
     }
 
     Write-Section -Message 'Summary'
-    Write-Output "User: $($user.SamAccountName)"
-    Write-Output "Description set to: $disabledDescription"
-    Write-Output 'Account disabled: Yes'
-    Write-Output "Address list visibility: $addressListVisibility"
-    Write-Output "Group export file: $groupExportPath"
-    Write-Output "Non-default groups removed: $($removedGroups.Count)"
-
-    if ($removedGroups.Count -gt 0) {
-        foreach ($groupName in $removedGroups) {
-            Write-Output "- $groupName"
-        }
-    }
-
-    Write-Output 'Password changed: Yes'
-    Write-Output 'Password never expires: Yes'
-
-    if ($movedToOu) {
-        Write-Output "Moved to OU: $movedToOu"
+    $finalLocation = Get-ReadableDirectoryLocation `
+        -CanonicalName $user.CanonicalName `
+        -DistinguishedName $user.DistinguishedName
+    $removedGroupSummary = if ($removedGroups.Count -eq 1) {
+        '1 group'
     }
     else {
-        Write-Output 'Moved to OU: No move performed'
+        "$($removedGroups.Count) groups"
+    }
+
+    Write-Output "Finished disabling the account for '$($user.SamAccountName)'."
+    Write-Output ''
+    Write-Output 'Account details:'
+    Write-DetailLine -Label 'Name' -Value $user.DisplayName -Fallback $user.SamAccountName
+    Write-DetailLine -Label 'Username' -Value $user.SamAccountName
+    Write-DetailLine -Label 'Sign-in address' -Value $user.UserPrincipalName
+    Write-DetailLine -Label 'Final location' -Value $finalLocation
+    Write-Output ''
+    Write-Output 'Changes made:'
+    Write-DetailLine -Label 'Description updated to' -Value $disabledDescription
+    Write-DetailLine -Label 'Account disabled' -Value 'Yes'
+    Write-DetailLine -Label 'Address lists' -Value $addressListVisibility
+    Write-DetailLine -Label 'Password reset' -Value 'Yes'
+    Write-DetailLine -Label 'Password never expires' -Value 'Yes'
+
+    if ($movedToOu) {
+        Write-DetailLine -Label 'Move result' -Value "Moved to $movedToOu"
+    }
+    else {
+        Write-DetailLine -Label 'Move result' -Value 'No move performed'
+    }
+
+    Write-Output ''
+    Write-Output 'Group memberships:'
+    Write-DetailLine -Label 'Saved group list' -Value $groupExportPath
+
+    if ($removedGroups.Count -gt 0) {
+        Write-DetailLine -Label 'Non-default groups removed' -Value $removedGroupSummary
+        Write-Output '  Removed groups:'
+
+        foreach ($groupName in $removedGroups) {
+            Write-Output "    - $groupName"
+        }
+    }
+    else {
+        Write-DetailLine -Label 'Non-default groups removed' -Value 'None'
     }
 
     Write-Output ''
