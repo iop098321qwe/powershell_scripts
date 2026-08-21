@@ -369,19 +369,37 @@ function Confirm-TargetAdUser {
     )
 
     Write-Section -Message 'Confirm Target User'
-    $accountStatus = if ($User.Enabled) { 'Enabled' } else { 'Disabled' }
+    $accountStatus = if ($User.Enabled) {
+        'Enabled (can sign in)'
+    }
+    else {
+        'Disabled (cannot sign in)'
+    }
+
     $currentLocation = Get-ReadableDirectoryLocation `
         -CanonicalName $User.CanonicalName `
         -DistinguishedName $User.DistinguishedName
+    $objectGuid = if ($null -eq $User.ObjectGUID) { '' } else { $User.ObjectGUID.ToString() }
 
-    Write-Output 'Please review the account below before continuing:'
+    Write-Output 'Please review the selected account before any changes are made:'
     Write-Output ''
-    Write-DetailLine -Label 'Name' -Value $User.DisplayName -Fallback $User.SamAccountName
+
+    Write-Output 'Identity'
+    Write-DetailLine -Label 'First name' -Value $User.GivenName -Fallback 'Not set'
+    Write-DetailLine -Label 'Last name' -Value $User.Surname -Fallback 'Not set'
+    Write-DetailLine -Label 'Display name' -Value $User.DisplayName -Fallback $User.SamAccountName
     Write-DetailLine -Label 'Username' -Value $User.SamAccountName
-    Write-DetailLine -Label 'Sign-in address' -Value $User.UserPrincipalName
-    Write-DetailLine -Label 'Account status' -Value $accountStatus
-    Write-DetailLine -Label 'Current description' -Value $User.Description -Fallback 'No description set'
+    Write-DetailLine -Label 'Sign-in address' -Value $User.UserPrincipalName -Fallback 'Not set'
+    Write-Output ''
+
+    Write-Output 'Account'
+    Write-DetailLine -Label 'Current status' -Value $accountStatus
+    Write-DetailLine -Label 'Description' -Value $User.Description -Fallback 'No description set'
+    Write-Output ''
+
+    Write-Output 'Directory'
     Write-DetailLine -Label 'Current location' -Value $currentLocation
+    Write-DetailLine -Label 'Object GUID' -Value $objectGuid -Fallback 'Not available'
     Write-Output ''
 
     return (Read-YesNoPrompt -Prompt 'Is this the correct account to disable' -DefaultAnswer None)
