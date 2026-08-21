@@ -400,7 +400,7 @@ function Select-TargetOrganizationalUnit {
         throw "No Organizational Units were found under '$userDomainDn'."
     }
 
-    Write-Host "Available Organizational Units under $userDomainDn:"
+    Write-Host ('Available Organizational Units under {0}:' -f $userDomainDn)
     for ($index = 0; $index -lt $organizationalUnits.Count; $index++) {
         $number = $index + 1
         Write-Host ("[{0}] {1}" -f $number, $organizationalUnits[$index].DistinguishedName)
@@ -649,5 +649,6 @@ catch {
     Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
     Write-Output ''
     Write-Output 'Review any completed steps in Active Directory before rerunning this script.'
+    Read-Host 'Press Enter to exit' | Out-Null
     exit 1
 }
