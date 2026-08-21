@@ -3,12 +3,12 @@
 Disable an Active Directory user account and archive group memberships.
 
 .DESCRIPTION
-Prompts for an Active Directory username, writes the user's primary group and
-direct memberOf group names to the Public Documents folder, updates the user's
-description, disables the account, optionally hides the user from address lists,
-removes non-default group memberships, resets the password, sets the password
-to never expire, and optionally moves the user to a selected Organizational
-Unit.
+Prompts for an Active Directory username or a first/last name search, writes
+the user's primary group and direct memberOf group names to the Public
+Documents folder, updates the user's description, disables the account,
+optionally hides the user from address lists, removes non-default group
+memberships, resets the password, sets the password to never expire, and
+optionally moves the user to a selected Organizational Unit.
 
 This script is intended to be run on a domain controller from an elevated
 PowerShell window by an account with permission to modify users, groups, and
@@ -252,6 +252,136 @@ function Resolve-AdUser {
 
         return $users[0]
     }
+}
+
+function Search-AdUsersByName {
+    param (
+        [Parameter(Mandatory)]
+        [string]$Name
+    )
+
+    $ldapValue = ConvertTo-LdapFilterValue -Value $Name
+
+    return @(
+        Get-ADUser `
+            -LDAPFilter "(|(givenName=$ldapValue)(sn=$ldapValue))" `
+            -Properties $script:AdUserProperties `
+            -ErrorAction Stop |
+            Sort-Object -Property DisplayName, SamAccountName, DistinguishedName
+    )
+}
+
+function Get-AdUserSelectionLabel {
+    param (
+        [Parameter(Mandatory)]
+        [object]$User
+    )
+
+    $displayName = if ([string]::IsNullOrWhiteSpace($User.DisplayName)) {
+        $User.SamAccountName
+    }
+    else {
+        $User.DisplayName.Trim()
+    }
+
+    $userPrincipalName = if ([string]::IsNullOrWhiteSpace($User.UserPrincipalName)) {
+        'No sign-in address'
+    }
+    else {
+        $User.UserPrincipalName.Trim()
+    }
+
+    $accountStatus = if ($User.Enabled) { 'Enabled' } else { 'Disabled' }
+    $currentLocation = Get-ReadableDirectoryLocation `
+        -CanonicalName $User.CanonicalName `
+        -DistinguishedName $User.DistinguishedName
+
+    return '{0} | {1} | {2} | {3} | {4}' -f `
+        $displayName, `
+        $User.SamAccountName, `
+        $userPrincipalName, `
+        $accountStatus, `
+        $currentLocation
+}
+
+function Select-TargetAdUser {
+    while ($true) {
+        $identity = Read-RequiredValue -Prompt 'Enter the username (sAMAccountName or UPN), or a first/last name to search'
+        Write-Step "Looking up Active Directory user '$identity'..."
+
+        try {
+            return Resolve-AdUser -Identity $identity
+        }
+        catch {
+            if ($_.Exception.Message -notlike "No Active Directory user was found for '*'.") {
+                throw
+            }
+        }
+
+        Write-Step "No exact username or UPN match was found for '$identity'. Searching by first or last name..."
+        $matchingUsers = @(Search-AdUsersByName -Name $identity)
+
+        if ($matchingUsers.Count -eq 0) {
+            Write-Host "No users were found with the first or last name '$identity'. Try again." -ForegroundColor Yellow
+            continue
+        }
+
+        Write-Host ''
+        Write-Host ("Matching users for '{0}':" -f $identity)
+        for ($index = 0; $index -lt $matchingUsers.Count; $index++) {
+            $number = $index + 1
+            Write-Host ("[{0}] {1}" -f $number, (Get-AdUserSelectionLabel -User $matchingUsers[$index]))
+        }
+
+        Write-Host ''
+
+        while ($true) {
+            $selection = (Read-Host 'Enter the user number to continue, or Q to search again').Trim()
+
+            if ($selection -match '^(q|quit|search)$') {
+                Write-Host 'Search selection cleared. Enter another username or name.'
+                break
+            }
+
+            [int]$selectionNumber = 0
+            if (-not [int]::TryParse($selection, [ref]$selectionNumber)) {
+                Write-Host 'Enter a valid number from the user list, or Q to search again.' -ForegroundColor Yellow
+                continue
+            }
+
+            if ($selectionNumber -lt 1 -or $selectionNumber -gt $matchingUsers.Count) {
+                Write-Host 'That number is not in the user list.' -ForegroundColor Yellow
+                continue
+            }
+
+            return $matchingUsers[$selectionNumber - 1]
+        }
+    }
+}
+
+function Confirm-TargetAdUser {
+    param (
+        [Parameter(Mandatory)]
+        [object]$User
+    )
+
+    Write-Section -Message 'Confirm Target User'
+    $accountStatus = if ($User.Enabled) { 'Enabled' } else { 'Disabled' }
+    $currentLocation = Get-ReadableDirectoryLocation `
+        -CanonicalName $User.CanonicalName `
+        -DistinguishedName $User.DistinguishedName
+
+    Write-Output 'Please review the account below before continuing:'
+    Write-Output ''
+    Write-DetailLine -Label 'Name' -Value $User.DisplayName -Fallback $User.SamAccountName
+    Write-DetailLine -Label 'Username' -Value $User.SamAccountName
+    Write-DetailLine -Label 'Sign-in address' -Value $User.UserPrincipalName
+    Write-DetailLine -Label 'Account status' -Value $accountStatus
+    Write-DetailLine -Label 'Current description' -Value $User.Description -Fallback 'No description set'
+    Write-DetailLine -Label 'Current location' -Value $currentLocation
+    Write-Output ''
+
+    return (Read-YesNoPrompt -Prompt 'Is this the correct account to disable' -DefaultAnswer None)
 }
 
 function ConvertTo-SafeFileNamePart {
@@ -642,30 +772,16 @@ try {
     Write-Step 'Confirmed this PowerShell window is elevated.'
     Import-ActiveDirectoryModule
 
-    $username = Read-RequiredValue -Prompt 'Enter the username (sAMAccountName or UPN) to disable'
-    Write-Step "Looking up Active Directory user '$username'..."
-    $user = Resolve-AdUser -Identity $username
+    $user = $null
+    while ($true) {
+        $user = Select-TargetAdUser
 
-    Write-Section -Message 'Confirm Target User'
-    $accountStatus = if ($user.Enabled) { 'Enabled' } else { 'Disabled' }
-    $currentLocation = Get-ReadableDirectoryLocation `
-        -CanonicalName $user.CanonicalName `
-        -DistinguishedName $user.DistinguishedName
+        if (Confirm-TargetAdUser -User $user) {
+            break
+        }
 
-    Write-Output 'Please review the account below before continuing:'
-    Write-Output ''
-    Write-DetailLine -Label 'Name' -Value $user.DisplayName -Fallback $user.SamAccountName
-    Write-DetailLine -Label 'Username' -Value $user.SamAccountName
-    Write-DetailLine -Label 'Sign-in address' -Value $user.UserPrincipalName
-    Write-DetailLine -Label 'Account status' -Value $accountStatus
-    Write-DetailLine -Label 'Current description' -Value $user.Description -Fallback 'No description set'
-    Write-DetailLine -Label 'Current location' -Value $currentLocation
-    Write-Output ''
-
-    if (-not (Read-YesNoPrompt -Prompt 'Is this the correct account to disable' -DefaultAnswer None)) {
-        Write-Output 'Target user was not confirmed. Exiting without making changes.'
-        Wait-ForExit
-        exit 0
+        Write-Output 'Target user was not confirmed. Search for another user.'
+        Write-Output ''
     }
 
     Write-Section -Message 'Document Current Groups'
