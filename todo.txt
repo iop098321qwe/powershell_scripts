@@ -1,4 +1,4 @@
 (A) 2026-08-21 change user confirmation details to be more human readable @fix due:2026-08-21
 (A) 2026-08-21 allow passing a list of usernames to disable @feat due:2026-08-21
 (A) 2026-08-21 add option to run again after the end for processing multiple users one by one @feat due:2026-08-21
-(A) 2026-08-21 ensure script doesn't exit after completion automatically @fix due:2026-08-21
+(A) 2026-08-21 make the summary more human readable due:2026-08-21 @fix

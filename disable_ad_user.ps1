@@ -127,6 +127,10 @@ function Read-RequiredValue {
     }
 }
 
+function Wait-ForExit {
+    Read-Host 'Press Enter to exit' | Out-Null
+}
+
 function Test-IsAdministrator {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = [Security.Principal.WindowsPrincipal]$identity
@@ -586,6 +590,7 @@ try {
         }
 
         Write-Output 'Elevation was declined. Exiting without making changes.'
+        Wait-ForExit
         exit 1
     }
 
@@ -605,6 +610,7 @@ try {
 
     if (-not (Read-YesNoPrompt -Prompt 'Continue disabling this user' -DefaultAnswer No)) {
         Write-Output 'Target user was not confirmed. Exiting without making changes.'
+        Wait-ForExit
         exit 0
     }
 
@@ -773,12 +779,13 @@ try {
 
     Write-Output ''
     Write-Host 'Reminder: verify the account status, description, group memberships, password settings, and OU placement manually.' -ForegroundColor Yellow
+    Wait-ForExit
 }
 catch {
     Write-Host ''
     Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
     Write-Output ''
     Write-Output 'Review any completed steps in Active Directory before rerunning this script.'
-    Read-Host 'Press Enter to exit' | Out-Null
+    Wait-ForExit
     exit 1
 }
