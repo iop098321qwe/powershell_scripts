@@ -3,8 +3,8 @@
 Disable an Active Directory user account and archive group memberships.
 
 .DESCRIPTION
-Prompts for an Active Directory username, writes the user's direct memberOf
-group memberships to the Public Documents folder, updates the user's
+Prompts for an Active Directory username, writes the user's primary group and
+direct memberOf group names to the Public Documents folder, updates the user's
 description, disables the account, removes non-default group memberships,
 resets the password, sets the password to never expire, and optionally moves
 the user to a selected Organizational Unit.
@@ -224,7 +224,7 @@ function Get-GroupMembershipExportPath {
         New-Item -Path $publicDocuments -ItemType Directory -Force | Out-Null
     }
 
-    $fileName = '{0}_{1}_groups.md' -f `
+    $fileName = '{0}_{1}_groups.txt' -f `
         (ConvertTo-SafeFileNamePart -Value $firstName), `
         (ConvertTo-SafeFileNamePart -Value $lastName)
 
@@ -259,9 +259,6 @@ function Get-DomainGroupByRid {
 function Export-GroupMemberships {
     param (
         [Parameter(Mandatory)]
-        [object]$User,
-
-        [Parameter(Mandatory)]
         [object[]]$DirectGroups,
 
         [Parameter(Mandatory)]
@@ -275,48 +272,26 @@ function Export-GroupMemberships {
         throw "The group export file already exists: $Path"
     }
 
-    $displayName = if ($User.DisplayName) { $User.DisplayName } else { $User.SamAccountName }
-    $timestamp = (Get-Date).ToString('o', [Globalization.CultureInfo]::InvariantCulture)
-    $groups = @($DirectGroups)
-    $content = [System.Collections.Generic.List[string]]::new()
+    $groups = [System.Collections.Generic.List[object]]::new()
+    [void]$groups.Add($PrimaryGroup)
 
-    [void]$content.Add("# Group Memberships for $displayName")
-    [void]$content.Add('')
-    [void]$content.Add("Exported: $timestamp")
-    [void]$content.Add("SamAccountName: $($User.SamAccountName)")
-    [void]$content.Add("UserPrincipalName: $($User.UserPrincipalName)")
-    [void]$content.Add("DistinguishedName: $($User.DistinguishedName)")
-    [void]$content.Add('')
-    [void]$content.Add('## Primary Group')
-    [void]$content.Add('')
-    [void]$content.Add('```text')
-    [void]$content.Add("Name: $($PrimaryGroup.Name)")
-    [void]$content.Add("SamAccountName: $($PrimaryGroup.SamAccountName)")
-    [void]$content.Add("DistinguishedName: $($PrimaryGroup.DistinguishedName)")
-    [void]$content.Add('```')
-    [void]$content.Add('')
-    [void]$content.Add('## Direct memberOf Groups')
-    [void]$content.Add('')
-
-    if ($groups.Count -eq 0) {
-        [void]$content.Add('No direct memberOf group memberships were found.')
-    }
-    else {
-        [void]$content.Add('```text')
-
-        foreach ($group in $groups) {
-            [void]$content.Add("Name: $($group.Name)")
-            [void]$content.Add("SamAccountName: $($group.SamAccountName)")
-            [void]$content.Add("GroupCategory: $($group.GroupCategory)")
-            [void]$content.Add("GroupScope: $($group.GroupScope)")
-            [void]$content.Add("DistinguishedName: $($group.DistinguishedName)")
-            [void]$content.Add('')
+    foreach ($group in @($DirectGroups)) {
+        if ($group.DistinguishedName -ne $PrimaryGroup.DistinguishedName) {
+            [void]$groups.Add($group)
         }
-
-        [void]$content.Add('```')
     }
 
-    $content | Set-Content -LiteralPath $Path -Encoding UTF8
+    $groupNames = @(
+        $groups |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_.Name) } |
+            ForEach-Object { $_.Name }
+    )
+
+    if ($groupNames.Count -eq 0) {
+        throw "No group names were available to write: $Path"
+    }
+
+    $groupNames | Set-Content -LiteralPath $Path -Encoding UTF8
 }
 
 function ConvertFrom-SecureStringToPlainText {
@@ -498,9 +473,9 @@ try {
     $defaultGroup = Get-DomainGroupByRid -Rid 513
     $groupExportPath = Get-GroupMembershipExportPath -User $user
 
-    Write-Step "Writing group membership record to '$groupExportPath'..."
-    Export-GroupMemberships -User $user -DirectGroups $directGroups -PrimaryGroup $primaryGroup -Path $groupExportPath
-    Write-Step "Documented $($directGroups.Count) direct memberOf group membership(s)."
+    Write-Step "Writing group names to '$groupExportPath'..."
+    Export-GroupMemberships -DirectGroups $directGroups -PrimaryGroup $primaryGroup -Path $groupExportPath
+    Write-Step "Documented the primary group and $($directGroups.Count) direct memberOf group membership(s)."
 
     Write-Section -Message 'Disable Account'
     $disabledDate = (Get-Date).ToString('yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture)
