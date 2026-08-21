@@ -67,11 +67,30 @@ function Write-Step {
 function Read-YesNoPrompt {
     param (
         [Parameter(Mandatory)]
-        [string]$Prompt
+        [string]$Prompt,
+
+        [ValidateSet('Yes', 'No', 'None')]
+        [string]$DefaultAnswer = 'None'
     )
 
+    $promptSuffix = switch ($DefaultAnswer) {
+        'Yes' { '(Y/n)' }
+        'No' { '(y/N)' }
+        default { '(y/n)' }
+    }
+
     while ($true) {
-        $response = (Read-Host "$Prompt (y/n)").Trim().ToLowerInvariant()
+        $response = (Read-Host "$Prompt $promptSuffix").Trim().ToLowerInvariant()
+
+        if ([string]::IsNullOrWhiteSpace($response)) {
+            if ($DefaultAnswer -eq 'Yes') {
+                return $true
+            }
+
+            if ($DefaultAnswer -eq 'No') {
+                return $false
+            }
+        }
 
         if ($response -in @('y', 'yes')) {
             return $true
@@ -81,7 +100,12 @@ function Read-YesNoPrompt {
             return $false
         }
 
-        Write-Host "Please enter 'y' or 'n'." -ForegroundColor Yellow
+        if ($DefaultAnswer -eq 'None') {
+            Write-Host "Please enter 'y' or 'n'." -ForegroundColor Yellow
+        }
+        else {
+            Write-Host "Please enter 'y', 'n', or press Enter for $($DefaultAnswer.ToLowerInvariant())." -ForegroundColor Yellow
+        }
     }
 }
 
@@ -522,7 +546,7 @@ function Select-TargetOrganizationalUnit {
         Write-Host ''
         Write-Host "Selected OU: $($selectedOu.DistinguishedName)"
 
-        if (Read-YesNoPrompt -Prompt "Move '$($User.SamAccountName)' to this OU") {
+        if (Read-YesNoPrompt -Prompt "Move '$($User.SamAccountName)' to this OU" -DefaultAnswer No) {
             return $selectedOu
         }
 
@@ -555,7 +579,7 @@ try {
         Write-Warning 'This script must run in an elevated PowerShell window.'
         Write-Output 'No Active Directory changes will be made from this unelevated session.'
 
-        if (Read-YesNoPrompt -Prompt 'Relaunch this script as Administrator now') {
+        if (Read-YesNoPrompt -Prompt 'Relaunch this script as Administrator now' -DefaultAnswer Yes) {
             Start-ElevatedScript
             exit 0
         }
@@ -578,7 +602,7 @@ try {
     Write-Output "Enabled: $($user.Enabled)"
     Write-Output "DistinguishedName: $($user.DistinguishedName)"
 
-    if (-not (Read-YesNoPrompt -Prompt 'Continue disabling this user')) {
+    if (-not (Read-YesNoPrompt -Prompt 'Continue disabling this user' -DefaultAnswer No)) {
         Write-Output 'Target user was not confirmed. Exiting without making changes.'
         exit 0
     }
