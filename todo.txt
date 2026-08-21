@@ -1,1 +1,1 @@
-(A) 2026-08-21 make groups doc .txt and human readable @fix due:2026-08-21
+(A) 2026-08-21 change user confirmation details to be more human readable @fix due:2026-08-21

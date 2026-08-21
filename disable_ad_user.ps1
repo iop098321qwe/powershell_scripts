@@ -383,6 +383,7 @@ function Add-OrganizationalUnitMenuEntries {
         [hashtable]$ChildrenByParentDistinguishedName,
 
         [Parameter(Mandatory)]
+        [AllowEmptyCollection()]
         [System.Collections.Generic.List[object]]$MenuEntries,
 
         [string]$Prefix = '',
