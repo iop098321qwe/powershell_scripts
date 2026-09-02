@@ -33,6 +33,7 @@ $script:AdUserProperties = @(
     'PrimaryGroupID',
     'SamAccountName',
     'Surname',
+    'userAccountControl',
     'UserPrincipalName'
 )
 
@@ -262,14 +263,21 @@ function Import-ActiveDirectoryModule {
 }
 
 function Resolve-ActiveDirectoryServer {
-    Write-Step 'Selecting a writable Active Directory domain controller...'
+    Write-Step 'Selecting the PDC emulator domain controller...'
 
-    $domainController = Get-ADDomainController -Discover -Writable -Service ADWS -ErrorAction Stop
-    $serverName = if ([string]::IsNullOrWhiteSpace($domainController.HostName)) {
-        $domainController.Name
+    $domain = Get-ADDomain -ErrorAction Stop
+    $serverName = if ([string]::IsNullOrWhiteSpace($domain.PDCEmulator)) {
+        $domainController = Get-ADDomainController -Discover -Writable -Service ADWS -ErrorAction Stop
+
+        if ([string]::IsNullOrWhiteSpace($domainController.HostName)) {
+            $domainController.Name
+        }
+        else {
+            $domainController.HostName
+        }
     }
     else {
-        $domainController.HostName
+        $domain.PDCEmulator
     }
 
     if ([string]::IsNullOrWhiteSpace($serverName)) {
@@ -300,6 +308,15 @@ function ConvertTo-LdapFilterValue {
     }
 
     return $builder.ToString()
+}
+
+function ConvertTo-LdapGuidFilterValue {
+    param (
+        [Parameter(Mandatory)]
+        [guid]$Guid
+    )
+
+    return (($Guid.ToByteArray() | ForEach-Object { '\{0:x2}' -f $_ }) -join '')
 }
 
 function Get-ReadableDirectoryLocation {
@@ -446,17 +463,74 @@ function Resolve-AdUser {
     }
 }
 
-function Get-RefreshedAdUser {
+function Test-AdUserIsEnabled {
     param (
         [Parameter(Mandatory)]
         [object]$User
+    )
+
+    if ($null -ne $User.userAccountControl) {
+        return (([int]$User.userAccountControl -band 2) -eq 0)
+    }
+
+    return ($User.Enabled -eq $true -or $User.Enabled -eq 'True')
+}
+
+function Get-RefreshedAdUser {
+    param (
+        [Parameter(Mandatory)]
+        [object]$User,
+
+        [AllowNull()]
+        [object]$ExpectedEnabled = $null,
+
+        [ValidateRange(1, 30)]
+        [int]$MaxAttempts = 1,
+
+        [ValidateRange(1, 30)]
+        [int]$DelaySeconds = 1
     )
 
     if ($null -eq $User.ObjectGUID) {
         throw "Could not refresh '$($User.SamAccountName)' because the object GUID was not available."
     }
 
-    return Get-ADUser -Identity $User.ObjectGUID -Properties $script:AdUserProperties -Server $script:AdServer -ErrorAction Stop
+    $objectGuid = [guid]$User.ObjectGUID
+    $ldapGuid = ConvertTo-LdapGuidFilterValue -Guid $objectGuid
+    $refreshedUser = $null
+
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        $users = @(
+            Get-ADUser `
+                -LDAPFilter "(objectGUID=$ldapGuid)" `
+                -Properties $script:AdUserProperties `
+                -Server $script:AdServer `
+                -ErrorAction Stop
+        )
+
+        if ($users.Count -ne 1) {
+            throw "Could not refresh '$($User.SamAccountName)' by object GUID."
+        }
+
+        $refreshedUser = $users[0]
+
+        if ($null -eq $ExpectedEnabled) {
+            return $refreshedUser
+        }
+
+        if ((Test-AdUserIsEnabled -User $refreshedUser) -eq [bool]$ExpectedEnabled) {
+            return $refreshedUser
+        }
+
+        if ($attempt -lt $MaxAttempts) {
+            Start-Sleep -Seconds $DelaySeconds
+        }
+    }
+
+    $expectedStatus = if ([bool]$ExpectedEnabled) { 'enabled' } else { 'disabled' }
+    Write-Warning "AD did not report '$($User.SamAccountName)' as $expectedStatus after refresh attempts."
+
+    return $refreshedUser
 }
 
 function Search-AdUsersByName {
@@ -500,7 +574,7 @@ function Write-AdUserSelectionEntry {
         $User.UserPrincipalName.Trim()
     }
 
-    $accountStatus = if ($User.Enabled) { 'Enabled' } else { 'Disabled' }
+    $accountStatus = if (Test-AdUserIsEnabled -User $User) { 'Enabled' } else { 'Disabled' }
     $currentLocation = Get-ReadableDirectoryLocation `
         -CanonicalName $User.CanonicalName `
         -DistinguishedName $User.DistinguishedName
@@ -527,7 +601,10 @@ function Select-TargetAdUser {
         }
 
         Write-Step "No exact username or UPN match was found for '$identity'. Searching by partial first or last name..."
-        $matchingUsers = @(Search-AdUsersByName -Name $identity)
+        $matchingUsers = @(
+            Search-AdUsersByName -Name $identity |
+                ForEach-Object { Get-RefreshedAdUser -User $_ }
+        )
 
         if ($matchingUsers.Count -eq 0) {
             Write-Host "No users were found with a first or last name containing '$identity'. Try again." -ForegroundColor Yellow
@@ -575,7 +652,7 @@ function Confirm-TargetAdUser {
     )
 
     Write-Section -Message 'Confirm Target User'
-    $accountStatus = if ($User.Enabled) {
+    $accountStatus = if (Test-AdUserIsEnabled -User $User) {
         'Enabled (can sign in)'
     }
     else {
@@ -1277,6 +1354,7 @@ try {
 
         Write-Step 'Disabling the user account...'
         Disable-ADAccount -Identity $user.DistinguishedName -Server $script:AdServer -ErrorAction Stop
+        $user = Get-RefreshedAdUser -User $user -ExpectedEnabled $false -MaxAttempts 10 -DelaySeconds 2
 
         Write-Section -Message 'Address Lists'
         if (Read-YesNoPrompt -Prompt 'Hide this user from address lists' -DefaultAnswer Yes) {
@@ -1401,7 +1479,7 @@ try {
             Write-Step 'OU move skipped by operator selection.'
         }
 
-        $user = Get-RefreshedAdUser -User $user
+        $user = Get-RefreshedAdUser -User $user -ExpectedEnabled $false -MaxAttempts 5 -DelaySeconds 1
 
         Write-Section -Message 'Summary'
         $summaryGeneratedAt = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss', [Globalization.CultureInfo]::InvariantCulture)
