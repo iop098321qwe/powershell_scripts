@@ -77,14 +77,58 @@ function Write-DetailLine {
         [string]$Fallback = 'Not available'
     )
 
-    $displayValue = if ([string]::IsNullOrWhiteSpace($Value)) {
+    $displayValue = Get-DisplayValue -Value $Value -Fallback $Fallback
+
+    Write-Output ('  {0,-22} {1}' -f ('{0}:' -f $Label), $displayValue)
+}
+
+function Get-DisplayValue {
+    param (
+        [AllowEmptyString()]
+        [string]$Value,
+
+        [string]$Fallback = 'Not available'
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Value)) {
         $Fallback
     }
     else {
         $Value.Trim()
     }
+}
 
-    Write-Output ('  {0,-22} {1}' -f ('{0}:' -f $Label), $displayValue)
+function Format-SummaryDetailLine {
+    param (
+        [Parameter(Mandatory)]
+        [string]$Label,
+
+        [AllowEmptyString()]
+        [string]$Value,
+
+        [string]$Fallback = 'Not available'
+    )
+
+    $displayValue = Get-DisplayValue -Value $Value -Fallback $Fallback
+
+    return ('  {0,-28} {1}' -f ('{0}:' -f $Label), $displayValue)
+}
+
+function Add-SummarySection {
+    param (
+        [Parameter(Mandatory)]
+        [System.Collections.Generic.List[string]]$Lines,
+
+        [Parameter(Mandatory)]
+        [string]$Message
+    )
+
+    if ($Lines.Count -gt 0) {
+        [void]$Lines.Add('')
+    }
+
+    [void]$Lines.Add($Message)
+    [void]$Lines.Add(('-' * $Message.Length))
 }
 
 function Read-YesNoPrompt {
@@ -550,6 +594,83 @@ function Export-GroupMemberships {
     }
 
     $groupNames | Set-Content -LiteralPath $Path -Encoding UTF8
+}
+
+function Get-DisableAdUserSummaryLines {
+    param (
+        [Parameter(Mandatory)]
+        [object]$User,
+
+        [Parameter(Mandatory)]
+        [string]$DisabledDescription,
+
+        [Parameter(Mandatory)]
+        [string]$AddressListVisibility,
+
+        [Parameter(Mandatory)]
+        [string]$GeneratedPassword,
+
+        [AllowEmptyString()]
+        [string]$MovedToOu,
+
+        [Parameter(Mandatory)]
+        [string]$GroupExportPath,
+
+        [AllowEmptyCollection()]
+        [string[]]$RemovedGroups = @()
+    )
+
+    $lines = [System.Collections.Generic.List[string]]::new()
+    $finalLocation = Get-ReadableDirectoryLocation `
+        -CanonicalName $User.CanonicalName `
+        -DistinguishedName $User.DistinguishedName
+    $removedGroupList = @($RemovedGroups)
+    $removedGroupSummary = if ($removedGroupList.Count -eq 1) {
+        '1 group'
+    }
+    else {
+        "$($removedGroupList.Count) groups"
+    }
+
+    [void]$lines.Add("Finished disabling account '$($User.SamAccountName)'.")
+
+    Add-SummarySection -Lines $lines -Message 'Account Details'
+    [void]$lines.Add((Format-SummaryDetailLine -Label 'Name' -Value $User.DisplayName -Fallback $User.SamAccountName))
+    [void]$lines.Add((Format-SummaryDetailLine -Label 'Username' -Value $User.SamAccountName))
+    [void]$lines.Add((Format-SummaryDetailLine -Label 'Sign-in address' -Value $User.UserPrincipalName))
+    [void]$lines.Add((Format-SummaryDetailLine -Label 'Final location' -Value $finalLocation))
+
+    Add-SummarySection -Lines $lines -Message 'Changes Made'
+    [void]$lines.Add((Format-SummaryDetailLine -Label 'Description updated to' -Value $DisabledDescription))
+    [void]$lines.Add((Format-SummaryDetailLine -Label 'Account disabled' -Value 'Yes'))
+    [void]$lines.Add((Format-SummaryDetailLine -Label 'Address lists' -Value $AddressListVisibility))
+    [void]$lines.Add((Format-SummaryDetailLine -Label 'Password reset' -Value 'Yes'))
+    [void]$lines.Add((Format-SummaryDetailLine -Label 'Generated password' -Value $GeneratedPassword))
+    [void]$lines.Add((Format-SummaryDetailLine -Label 'Password never expires' -Value 'Yes'))
+
+    if ($MovedToOu) {
+        [void]$lines.Add((Format-SummaryDetailLine -Label 'Move result' -Value "Moved to $MovedToOu"))
+    }
+    else {
+        [void]$lines.Add((Format-SummaryDetailLine -Label 'Move result' -Value 'No move performed'))
+    }
+
+    Add-SummarySection -Lines $lines -Message 'Group Memberships'
+    [void]$lines.Add((Format-SummaryDetailLine -Label 'Saved group list' -Value $GroupExportPath))
+
+    if ($removedGroupList.Count -gt 0) {
+        [void]$lines.Add((Format-SummaryDetailLine -Label 'Non-default groups removed' -Value $removedGroupSummary))
+        [void]$lines.Add('  Removed groups:')
+
+        foreach ($groupName in $removedGroupList) {
+            [void]$lines.Add("    - $groupName")
+        }
+    }
+    else {
+        [void]$lines.Add((Format-SummaryDetailLine -Label 'Non-default groups removed' -Value 'None'))
+    }
+
+    return @($lines)
 }
 
 function Get-SecureRandomIndex {
@@ -1023,56 +1144,17 @@ try {
         }
 
         Write-Section -Message 'Summary'
-        $finalLocation = Get-ReadableDirectoryLocation `
-            -CanonicalName $user.CanonicalName `
-            -DistinguishedName $user.DistinguishedName
-        $removedGroupSummary = if ($removedGroups.Count -eq 1) {
-            '1 group'
-        }
-        else {
-            "$($removedGroups.Count) groups"
-        }
+        $summaryLines = Get-DisableAdUserSummaryLines `
+            -User $user `
+            -DisabledDescription $disabledDescription `
+            -AddressListVisibility $addressListVisibility `
+            -GeneratedPassword $newPasswordPlainText `
+            -MovedToOu $movedToOu `
+            -GroupExportPath $groupExportPath `
+            -RemovedGroups $removedGroups
 
-        Write-Output "Finished disabling the account for '$($user.SamAccountName)'."
-        Write-Output ''
-        Write-Output 'Account details:'
-        Write-DetailLine -Label 'Name' -Value $user.DisplayName -Fallback $user.SamAccountName
-        Write-DetailLine -Label 'Username' -Value $user.SamAccountName
-        Write-DetailLine -Label 'Sign-in address' -Value $user.UserPrincipalName
-        Write-DetailLine -Label 'Final location' -Value $finalLocation
-        Write-Output ''
-        Write-Output 'Changes made:'
-        Write-DetailLine -Label 'Description updated to' -Value $disabledDescription
-        Write-DetailLine -Label 'Account disabled' -Value 'Yes'
-        Write-DetailLine -Label 'Address lists' -Value $addressListVisibility
-        Write-DetailLine -Label 'Password reset' -Value 'Yes'
-        Write-DetailLine -Label 'Generated password' -Value $newPasswordPlainText
-        Write-DetailLine -Label 'Password never expires' -Value 'Yes'
-
+        $summaryLines | Write-Output
         $newPasswordPlainText = $null
-
-        if ($movedToOu) {
-            Write-DetailLine -Label 'Move result' -Value "Moved to $movedToOu"
-        }
-        else {
-            Write-DetailLine -Label 'Move result' -Value 'No move performed'
-        }
-
-        Write-Output ''
-        Write-Output 'Group memberships:'
-        Write-DetailLine -Label 'Saved group list' -Value $groupExportPath
-
-        if ($removedGroups.Count -gt 0) {
-            Write-DetailLine -Label 'Non-default groups removed' -Value $removedGroupSummary
-            Write-Output '  Removed groups:'
-
-            foreach ($groupName in $removedGroups) {
-                Write-Output "    - $groupName"
-            }
-        }
-        else {
-            Write-DetailLine -Label 'Non-default groups removed' -Value 'None'
-        }
 
         Write-Output ''
         Write-Host 'Reminder: verify the account status, description, group memberships, password settings, and OU placement manually.' -ForegroundColor Yellow
