@@ -3,7 +3,7 @@
 Disable an Active Directory user account and archive group memberships.
 
 .DESCRIPTION
-Prompts for an Active Directory username or a first/last name search, writes
+Prompts for an Active Directory username or a partial first/last name search, writes
 the user's primary group and direct memberOf group names to the Public
 Documents folder, updates the user's description, disables the account,
 optionally hides the user from address lists, removes non-default group
@@ -264,7 +264,7 @@ function Search-AdUsersByName {
 
     return @(
         Get-ADUser `
-            -LDAPFilter "(|(givenName=$ldapValue)(sn=$ldapValue))" `
+            -LDAPFilter "(|(givenName=*$ldapValue*)(sn=*$ldapValue*))" `
             -Properties $script:AdUserProperties `
             -ErrorAction Stop |
             Sort-Object -Property DisplayName, SamAccountName, DistinguishedName
@@ -308,7 +308,7 @@ function Write-AdUserSelectionEntry {
 
 function Select-TargetAdUser {
     while ($true) {
-        $identity = Read-RequiredValue -Prompt 'Enter the username (sAMAccountName or UPN), or a first/last name to search'
+        $identity = Read-RequiredValue -Prompt 'Enter the username (sAMAccountName or UPN), or part of a first/last name to search'
         Write-Step "Looking up Active Directory user '$identity'..."
 
         try {
@@ -320,11 +320,11 @@ function Select-TargetAdUser {
             }
         }
 
-        Write-Step "No exact username or UPN match was found for '$identity'. Searching by first or last name..."
+        Write-Step "No exact username or UPN match was found for '$identity'. Searching by partial first or last name..."
         $matchingUsers = @(Search-AdUsersByName -Name $identity)
 
         if ($matchingUsers.Count -eq 0) {
-            Write-Host "No users were found with the first or last name '$identity'. Try again." -ForegroundColor Yellow
+            Write-Host "No users were found with a first or last name containing '$identity'. Try again." -ForegroundColor Yellow
             continue
         }
 
