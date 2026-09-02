@@ -400,7 +400,7 @@ function Select-TargetOrganizationalUnit {
         throw "No Organizational Units were found under '$userDomainDn'."
     }
 
-    Write-Host "Available Organizational Units under $userDomainDn:"
+    Write-Host "Available Organizational Units under ${userDomainDn}:"
     for ($index = 0; $index -lt $organizationalUnits.Count; $index++) {
         $number = $index + 1
         Write-Host ("[{0}] {1}" -f $number, $organizationalUnits[$index].DistinguishedName)
