@@ -149,7 +149,39 @@ function Read-RequiredValue {
 }
 
 function Wait-ForExit {
-    Read-Host 'Press Enter to exit' | Out-Null
+    Write-Host ''
+    Write-Host 'Press Esc or Q to exit.'
+
+    while ($true) {
+        $keyInfo = [Console]::ReadKey($true)
+        $keyChar = [char]::ToLowerInvariant($keyInfo.KeyChar)
+
+        if ($keyInfo.Key -eq [ConsoleKey]::Escape -or $keyChar -eq [char]'q') {
+            return
+        }
+
+        Write-Host 'Press Esc or Q to exit.' -ForegroundColor Yellow
+    }
+}
+
+function Read-RerunOrExitPrompt {
+    Write-Host ''
+    Write-Host 'Press Enter or R to run again. Press Esc or Q to exit.'
+
+    while ($true) {
+        $keyInfo = [Console]::ReadKey($true)
+        $keyChar = [char]::ToLowerInvariant($keyInfo.KeyChar)
+
+        if ($keyInfo.Key -eq [ConsoleKey]::Enter -or $keyChar -eq [char]'r') {
+            return $true
+        }
+
+        if ($keyInfo.Key -eq [ConsoleKey]::Escape -or $keyChar -eq [char]'q') {
+            return $false
+        }
+
+        Write-Host 'Press Enter/R to run again, or Esc/Q to exit.' -ForegroundColor Yellow
+    }
 }
 
 function Test-IsAdministrator {
@@ -774,9 +806,8 @@ function Test-IsNotMemberError {
 }
 
 try {
-    Write-Section -Message 'Disable Active Directory User'
-
     if (-not (Test-IsAdministrator)) {
+        Write-Section -Message 'Disable Active Directory User'
         Write-Warning 'This script must run in an elevated PowerShell window.'
         Write-Output 'No Active Directory changes will be made from this unelevated session.'
 
@@ -793,213 +824,220 @@ try {
     Write-Step 'Confirmed this PowerShell window is elevated.'
     Import-ActiveDirectoryModule
 
-    $user = $null
     while ($true) {
-        $user = Select-TargetAdUser
+        Write-Section -Message 'Disable Active Directory User'
 
-        if (Confirm-TargetAdUser -User $user) {
-            break
-        }
+        $user = $null
+        while ($true) {
+            $user = Select-TargetAdUser
 
-        Write-Output 'Target user was not confirmed. Search for another user.'
-        Write-Output ''
-    }
-
-    Write-Section -Message 'Document Current Groups'
-    Write-Step 'Reading direct memberOf group memberships...'
-    $directGroups = @(Get-DirectMemberOfGroups -User $user)
-    $primaryGroup = Get-DomainGroupByRid -Rid $user.PrimaryGroupID
-    $defaultGroup = Get-DomainGroupByRid -Rid 513
-    $groupExportPath = Get-GroupMembershipExportPath -User $user
-
-    Write-Step "Writing group names to '$groupExportPath'..."
-    Export-GroupMemberships -DirectGroups $directGroups -PrimaryGroup $primaryGroup -Path $groupExportPath
-    Write-Step "Documented the primary group and $($directGroups.Count) direct memberOf group membership(s)."
-
-    Write-Section -Message 'Disable Account'
-    $disabledDate = (Get-Date).ToString('yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture)
-    $disabledDescription = "Disabled $disabledDate"
-
-    Write-Step "Setting description to '$disabledDescription'..."
-    Set-ADUser -Identity $user.DistinguishedName -Description $disabledDescription -ErrorAction Stop
-
-    Write-Step 'Disabling the user account...'
-    Disable-ADAccount -Identity $user.DistinguishedName -ErrorAction Stop
-
-    Write-Section -Message 'Address Lists'
-    $addressListVisibility = 'Left unchanged'
-
-    if (Read-YesNoPrompt -Prompt 'Hide this user from address lists' -DefaultAnswer Yes) {
-        Write-Step 'Hiding the user from address lists...'
-        Set-ADUser -Identity $user.DistinguishedName -Replace @{ msExchHideFromAddressLists = $true } -ErrorAction Stop
-        $addressListVisibility = 'Hidden'
-    }
-    else {
-        Write-Step 'Address list visibility left unchanged by operator selection.'
-    }
-
-    Write-Section -Message 'Remove Group Memberships'
-    $primaryGroupChanged = $false
-
-    if ($primaryGroup.DistinguishedName -ne $defaultGroup.DistinguishedName) {
-        Write-Step "Primary group is '$($primaryGroup.Name)'. Changing primary group to '$($defaultGroup.Name)' first..."
-
-        try {
-            Add-ADGroupMember -Identity $defaultGroup.DistinguishedName -Members $user.DistinguishedName -ErrorAction Stop
-        }
-        catch {
-            if (-not (Test-IsAlreadyMemberError -Exception $_.Exception)) {
-                throw
+            if (Confirm-TargetAdUser -User $user) {
+                break
             }
+
+            Write-Output 'Target user was not confirmed. Search for another user.'
+            Write-Output ''
         }
 
-        $defaultPrimaryGroupToken = $defaultGroup.primaryGroupToken
-        if (-not $defaultPrimaryGroupToken) {
-            $defaultPrimaryGroupToken = 513
+        Write-Section -Message 'Document Current Groups'
+        Write-Step 'Reading direct memberOf group memberships...'
+        $directGroups = @(Get-DirectMemberOfGroups -User $user)
+        $primaryGroup = Get-DomainGroupByRid -Rid $user.PrimaryGroupID
+        $defaultGroup = Get-DomainGroupByRid -Rid 513
+        $groupExportPath = Get-GroupMembershipExportPath -User $user
+
+        Write-Step "Writing group names to '$groupExportPath'..."
+        Export-GroupMemberships -DirectGroups $directGroups -PrimaryGroup $primaryGroup -Path $groupExportPath
+        Write-Step "Documented the primary group and $($directGroups.Count) direct memberOf group membership(s)."
+
+        Write-Section -Message 'Disable Account'
+        $disabledDate = (Get-Date).ToString('yyyy-MM-dd', [Globalization.CultureInfo]::InvariantCulture)
+        $disabledDescription = "Disabled $disabledDate"
+
+        Write-Step "Setting description to '$disabledDescription'..."
+        Set-ADUser -Identity $user.DistinguishedName -Description $disabledDescription -ErrorAction Stop
+
+        Write-Step 'Disabling the user account...'
+        Disable-ADAccount -Identity $user.DistinguishedName -ErrorAction Stop
+
+        Write-Section -Message 'Address Lists'
+        $addressListVisibility = 'Left unchanged'
+
+        if (Read-YesNoPrompt -Prompt 'Hide this user from address lists' -DefaultAnswer Yes) {
+            Write-Step 'Hiding the user from address lists...'
+            Set-ADUser -Identity $user.DistinguishedName -Replace @{ msExchHideFromAddressLists = $true } -ErrorAction Stop
+            $addressListVisibility = 'Hidden'
+        }
+        else {
+            Write-Step 'Address list visibility left unchanged by operator selection.'
         }
 
-        Set-ADUser -Identity $user.DistinguishedName -Replace @{ primaryGroupID = $defaultPrimaryGroupToken } -ErrorAction Stop
-        $primaryGroupChanged = $true
-    }
-    else {
-        Write-Step "Default primary group '$($defaultGroup.Name)' will be preserved."
-    }
+        Write-Section -Message 'Remove Group Memberships'
+        $primaryGroupChanged = $false
 
-    $groupRemovalEntries = @(
-        $directGroups |
-            Where-Object { $_.DistinguishedName -ne $defaultGroup.DistinguishedName } |
-            ForEach-Object {
-                [pscustomobject]@{
-                    Group = $_
-                    IgnoreNotMember = $false
-                }
-            }
-    )
-
-    if ($primaryGroupChanged) {
-        $formerPrimaryQueued = @(
-            $groupRemovalEntries |
-                Where-Object { $_.Group.DistinguishedName -eq $primaryGroup.DistinguishedName }
-        ).Count -gt 0
-
-        if (-not $formerPrimaryQueued) {
-            $groupRemovalEntries += [pscustomobject]@{
-                Group = $primaryGroup
-                IgnoreNotMember = $true
-            }
-        }
-    }
-
-    $removedGroups = [System.Collections.Generic.List[string]]::new()
-
-    if ($groupRemovalEntries.Count -eq 0) {
-        Write-Step 'No non-default direct group memberships were found to remove.'
-    }
-    else {
-        foreach ($entry in $groupRemovalEntries) {
-            Write-Step "Removing membership from '$($entry.Group.Name)'..."
+        if ($primaryGroup.DistinguishedName -ne $defaultGroup.DistinguishedName) {
+            Write-Step "Primary group is '$($primaryGroup.Name)'. Changing primary group to '$($defaultGroup.Name)' first..."
 
             try {
-                Remove-ADGroupMember `
-                    -Identity $entry.Group.DistinguishedName `
-                    -Members $user.DistinguishedName `
-                    -Confirm:$false `
-                    -ErrorAction Stop
-
-                [void]$removedGroups.Add($entry.Group.Name)
+                Add-ADGroupMember -Identity $defaultGroup.DistinguishedName -Members $user.DistinguishedName -ErrorAction Stop
             }
             catch {
-                if ($entry.IgnoreNotMember -and (Test-IsNotMemberError -Exception $_.Exception)) {
-                    Write-Step "No direct membership remained in '$($entry.Group.Name)' after the primary group change."
-                    continue
+                if (-not (Test-IsAlreadyMemberError -Exception $_.Exception)) {
+                    throw
                 }
+            }
 
-                throw
+            $defaultPrimaryGroupToken = $defaultGroup.primaryGroupToken
+            if (-not $defaultPrimaryGroupToken) {
+                $defaultPrimaryGroupToken = 513
+            }
+
+            Set-ADUser -Identity $user.DistinguishedName -Replace @{ primaryGroupID = $defaultPrimaryGroupToken } -ErrorAction Stop
+            $primaryGroupChanged = $true
+        }
+        else {
+            Write-Step "Default primary group '$($defaultGroup.Name)' will be preserved."
+        }
+
+        $groupRemovalEntries = @(
+            $directGroups |
+                Where-Object { $_.DistinguishedName -ne $defaultGroup.DistinguishedName } |
+                ForEach-Object {
+                    [pscustomobject]@{
+                        Group = $_
+                        IgnoreNotMember = $false
+                    }
+                }
+        )
+
+        if ($primaryGroupChanged) {
+            $formerPrimaryQueued = @(
+                $groupRemovalEntries |
+                    Where-Object { $_.Group.DistinguishedName -eq $primaryGroup.DistinguishedName }
+            ).Count -gt 0
+
+            if (-not $formerPrimaryQueued) {
+                $groupRemovalEntries += [pscustomobject]@{
+                    Group = $primaryGroup
+                    IgnoreNotMember = $true
+                }
             }
         }
-    }
 
-    Write-Section -Message 'Password'
-    $newPassword = Read-NewPassword
+        $removedGroups = [System.Collections.Generic.List[string]]::new()
 
-    Write-Step 'Changing the user password...'
-    Set-ADAccountPassword -Identity $user.DistinguishedName -Reset -NewPassword $newPassword -ErrorAction Stop
+        if ($groupRemovalEntries.Count -eq 0) {
+            Write-Step 'No non-default direct group memberships were found to remove.'
+        }
+        else {
+            foreach ($entry in $groupRemovalEntries) {
+                Write-Step "Removing membership from '$($entry.Group.Name)'..."
 
-    Write-Step 'Setting password to never expire...'
-    Set-ADUser -Identity $user.DistinguishedName -PasswordNeverExpires $true -ErrorAction Stop
+                try {
+                    Remove-ADGroupMember `
+                        -Identity $entry.Group.DistinguishedName `
+                        -Members $user.DistinguishedName `
+                        -Confirm:$false `
+                        -ErrorAction Stop
 
-    $newPassword = $null
+                    [void]$removedGroups.Add($entry.Group.Name)
+                }
+                catch {
+                    if ($entry.IgnoreNotMember -and (Test-IsNotMemberError -Exception $_.Exception)) {
+                        Write-Step "No direct membership remained in '$($entry.Group.Name)' after the primary group change."
+                        continue
+                    }
 
-    Write-Section -Message 'Move User'
-    $targetOu = Select-TargetOrganizationalUnit -User $user
-    $movedToOu = $null
+                    throw
+                }
+            }
+        }
 
-    if ($null -ne $targetOu) {
-        $targetOuLocation = Get-ReadableDirectoryLocation `
-            -CanonicalName $targetOu.CanonicalName `
-            -DistinguishedName $targetOu.DistinguishedName
+        Write-Section -Message 'Password'
+        $newPassword = Read-NewPassword
 
-        Write-Step "Moving user to '$targetOuLocation'..."
-        Move-ADObject -Identity $user.DistinguishedName -TargetPath $targetOu.DistinguishedName -ErrorAction Stop
-        $movedToOu = $targetOuLocation
-        $user = Get-ADUser -Identity $user.ObjectGUID -Properties $script:AdUserProperties -ErrorAction Stop
-    }
-    else {
-        Write-Step 'OU move skipped by operator selection.'
-    }
+        Write-Step 'Changing the user password...'
+        Set-ADAccountPassword -Identity $user.DistinguishedName -Reset -NewPassword $newPassword -ErrorAction Stop
 
-    Write-Section -Message 'Summary'
-    $finalLocation = Get-ReadableDirectoryLocation `
-        -CanonicalName $user.CanonicalName `
-        -DistinguishedName $user.DistinguishedName
-    $removedGroupSummary = if ($removedGroups.Count -eq 1) {
-        '1 group'
-    }
-    else {
-        "$($removedGroups.Count) groups"
-    }
+        Write-Step 'Setting password to never expire...'
+        Set-ADUser -Identity $user.DistinguishedName -PasswordNeverExpires $true -ErrorAction Stop
 
-    Write-Output "Finished disabling the account for '$($user.SamAccountName)'."
-    Write-Output ''
-    Write-Output 'Account details:'
-    Write-DetailLine -Label 'Name' -Value $user.DisplayName -Fallback $user.SamAccountName
-    Write-DetailLine -Label 'Username' -Value $user.SamAccountName
-    Write-DetailLine -Label 'Sign-in address' -Value $user.UserPrincipalName
-    Write-DetailLine -Label 'Final location' -Value $finalLocation
-    Write-Output ''
-    Write-Output 'Changes made:'
-    Write-DetailLine -Label 'Description updated to' -Value $disabledDescription
-    Write-DetailLine -Label 'Account disabled' -Value 'Yes'
-    Write-DetailLine -Label 'Address lists' -Value $addressListVisibility
-    Write-DetailLine -Label 'Password reset' -Value 'Yes'
-    Write-DetailLine -Label 'Password never expires' -Value 'Yes'
+        $newPassword = $null
 
-    if ($movedToOu) {
-        Write-DetailLine -Label 'Move result' -Value "Moved to $movedToOu"
-    }
-    else {
-        Write-DetailLine -Label 'Move result' -Value 'No move performed'
-    }
+        Write-Section -Message 'Move User'
+        $targetOu = Select-TargetOrganizationalUnit -User $user
+        $movedToOu = $null
 
-    Write-Output ''
-    Write-Output 'Group memberships:'
-    Write-DetailLine -Label 'Saved group list' -Value $groupExportPath
+        if ($null -ne $targetOu) {
+            $targetOuLocation = Get-ReadableDirectoryLocation `
+                -CanonicalName $targetOu.CanonicalName `
+                -DistinguishedName $targetOu.DistinguishedName
 
-    if ($removedGroups.Count -gt 0) {
-        Write-DetailLine -Label 'Non-default groups removed' -Value $removedGroupSummary
-        Write-Output '  Removed groups:'
+            Write-Step "Moving user to '$targetOuLocation'..."
+            Move-ADObject -Identity $user.DistinguishedName -TargetPath $targetOu.DistinguishedName -ErrorAction Stop
+            $movedToOu = $targetOuLocation
+            $user = Get-ADUser -Identity $user.ObjectGUID -Properties $script:AdUserProperties -ErrorAction Stop
+        }
+        else {
+            Write-Step 'OU move skipped by operator selection.'
+        }
 
-        foreach ($groupName in $removedGroups) {
-            Write-Output "    - $groupName"
+        Write-Section -Message 'Summary'
+        $finalLocation = Get-ReadableDirectoryLocation `
+            -CanonicalName $user.CanonicalName `
+            -DistinguishedName $user.DistinguishedName
+        $removedGroupSummary = if ($removedGroups.Count -eq 1) {
+            '1 group'
+        }
+        else {
+            "$($removedGroups.Count) groups"
+        }
+
+        Write-Output "Finished disabling the account for '$($user.SamAccountName)'."
+        Write-Output ''
+        Write-Output 'Account details:'
+        Write-DetailLine -Label 'Name' -Value $user.DisplayName -Fallback $user.SamAccountName
+        Write-DetailLine -Label 'Username' -Value $user.SamAccountName
+        Write-DetailLine -Label 'Sign-in address' -Value $user.UserPrincipalName
+        Write-DetailLine -Label 'Final location' -Value $finalLocation
+        Write-Output ''
+        Write-Output 'Changes made:'
+        Write-DetailLine -Label 'Description updated to' -Value $disabledDescription
+        Write-DetailLine -Label 'Account disabled' -Value 'Yes'
+        Write-DetailLine -Label 'Address lists' -Value $addressListVisibility
+        Write-DetailLine -Label 'Password reset' -Value 'Yes'
+        Write-DetailLine -Label 'Password never expires' -Value 'Yes'
+
+        if ($movedToOu) {
+            Write-DetailLine -Label 'Move result' -Value "Moved to $movedToOu"
+        }
+        else {
+            Write-DetailLine -Label 'Move result' -Value 'No move performed'
+        }
+
+        Write-Output ''
+        Write-Output 'Group memberships:'
+        Write-DetailLine -Label 'Saved group list' -Value $groupExportPath
+
+        if ($removedGroups.Count -gt 0) {
+            Write-DetailLine -Label 'Non-default groups removed' -Value $removedGroupSummary
+            Write-Output '  Removed groups:'
+
+            foreach ($groupName in $removedGroups) {
+                Write-Output "    - $groupName"
+            }
+        }
+        else {
+            Write-DetailLine -Label 'Non-default groups removed' -Value 'None'
+        }
+
+        Write-Output ''
+        Write-Host 'Reminder: verify the account status, description, group memberships, password settings, and OU placement manually.' -ForegroundColor Yellow
+
+        if (-not (Read-RerunOrExitPrompt)) {
+            break
         }
     }
-    else {
-        Write-DetailLine -Label 'Non-default groups removed' -Value 'None'
-    }
-
-    Write-Output ''
-    Write-Host 'Reminder: verify the account status, description, group memberships, password settings, and OU placement manually.' -ForegroundColor Yellow
-    Wait-ForExit
 }
 catch {
     Write-Host ''
