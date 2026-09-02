@@ -1,6 +1,7 @@
-(B) 2026-08-21 allow passing a list of usernames to disable @feat
-(B) 2026-08-21 add option to run again after the end for processing multiple users one by one @feat
-(A) 2026-08-21 allow multiple users to be passed with comma separation @feat
-(B) 2026-08-21 change disable_ad_user.ps1 to disable_user.ps1 @chore
-(A) 2026-08-21 option to search for username based on users first and/or last name @feat
-(A) 2026-08-21 create a powershell scripts skill for creating scripts in this repo @feat
+(B) 2026-08-21 allow passing a list of usernames to disable @feat +disable_user
+(B) 2026-08-21 add option to run again after the end for processing multiple users one by one @feat +disable_user
+(A) 2026-08-21 allow multiple users to be passed with comma separation @feat +disable_user
+(B) 2026-08-21 change disable_ad_user.ps1 to disable_user.ps1 @chore +disable_user
+(A) 2026-08-21 option to search for username based on users first and/or last name @feat +disable_user
+(A) 2026-08-21 create a powershell scripts skill for creating scripts in this repo @feat +skill
+(A) 2026-09-01 fix rerun not showing an account correctly disabled after immediately disabling @fix +disable_user
