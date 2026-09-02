@@ -3,3 +3,5 @@ x 2026-08-21 2026-08-21 add option to toggle hide from address lists @feat due:2
 x 2026-08-21 2026-08-21 ensure script doesn't exit after completion automatically @fix due:2026-08-21
 x 2026-08-21 2026-08-21 change user confirmation details to be more human readable @fix due:2026-08-21
 x 2026-08-21 2026-08-21 make the summary more human readable due:2026-08-21 @fix
+x 2026-09-01 2026-08-21 add option to run again after the end for processing multiple users one by one @feat +disable_user
+x 2026-09-01 2026-08-21 option to search for username based on users first and/or last name @feat +disable_user
