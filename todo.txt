@@ -1,5 +1,12 @@
 (B) 2026-08-21 allow passing a list of usernames to disable @feat +disable_user
 (C) 2026-08-21 allow multiple users to be passed with comma separation @feat +disable_user
-(B) 2026-08-21 change disable_ad_user.ps1 to disable_user.ps1 @chore +disable_user
+(C) 2026-08-21 change disable_ad_user.ps1 to disable_user.ps1 @chore +disable_user
 (A) 2026-08-21 create a powershell scripts skill for creating scripts in this repo @feat +skill
 (A) 2026-09-01 fix rerun not showing an account correctly disabled after immediately disabling @fix +disable_user
+(A) 2026-09-02 document description/any changed values for auditing purposes +disable_user @feat
+(A) 2026-09-02 automatically generate password for resetting user password +disable_user @feat
+(B) 2026-09-02 write summary into a file for recording +disable_user @feat
+(B) 2026-09-02 script should generate logs of changes into a logfile in accordance with best practices and standard procedures +disable_user @feat
+(B) 2026-09-01 add interactive error handling for better workflow @feat +disable_user
+(A) 2026-09-01 fix username confirmation when selecting user interactively @fix +disable_user
+(C) 2026-09-02 build tests for automated testing of scripts +repo @test
