@@ -491,6 +491,10 @@ function Get-DirectMemberOfGroups {
     )
 
     $groups = foreach ($groupDn in @($User.MemberOf)) {
+        if ([string]::IsNullOrWhiteSpace($groupDn)) {
+            continue
+        }
+
         Get-ADGroup -Identity $groupDn -Properties $script:AdGroupProperties -ErrorAction Stop
     }
 
