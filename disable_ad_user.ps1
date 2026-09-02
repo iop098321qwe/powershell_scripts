@@ -7,8 +7,9 @@ Prompts for an Active Directory username or a partial first/last name search, wr
 the user's primary group and direct memberOf group names to the Public
 Documents folder, updates the user's description, disables the account,
 optionally hides the user from address lists, removes non-default group
-memberships, resets the password, sets the password to never expire, and
-optionally moves the user to a selected Organizational Unit.
+memberships, resets the password to a random 32-character value, sets the
+password to never expire, and optionally moves the user to a selected
+Organizational Unit.
 
 This script is intended to be run on a domain controller from an elevated
 PowerShell window by an account with permission to modify users, groups, and
@@ -551,45 +552,78 @@ function Export-GroupMemberships {
     $groupNames | Set-Content -LiteralPath $Path -Encoding UTF8
 }
 
-function ConvertFrom-SecureStringToPlainText {
+function Get-SecureRandomIndex {
     param (
         [Parameter(Mandatory)]
-        [Security.SecureString]$SecureString
+        [ValidateRange(1, 2147483647)]
+        [int]$ExclusiveMaximum,
+
+        [Parameter(Mandatory)]
+        [Security.Cryptography.RandomNumberGenerator]$RandomNumberGenerator
     )
 
-    $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecureString)
+    $bytes = [byte[]]::new(4)
+    $validMaximum = [uint32]::MaxValue - ([uint32]::MaxValue % [uint32]$ExclusiveMaximum)
 
-    try {
-        return [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
+    do {
+        $RandomNumberGenerator.GetBytes($bytes)
+        $value = [BitConverter]::ToUInt32($bytes, 0)
     }
-    finally {
-        if ($bstr -ne [IntPtr]::Zero) {
-            [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
-        }
-    }
+    while ($value -ge $validMaximum)
+
+    return [int]($value % [uint32]$ExclusiveMaximum)
 }
 
-function Read-NewPassword {
-    while ($true) {
-        $password = Read-Host 'Enter the new password for the disabled user' -AsSecureString
-        $confirmation = Read-Host 'Confirm the new password' -AsSecureString
+function New-RandomPassword {
+    param (
+        [ValidateRange(4, 2147483647)]
+        [int]$Length = 32
+    )
 
-        if ($password.Length -eq 0) {
-            Write-Host 'Password cannot be blank.' -ForegroundColor Yellow
-            continue
+    $lowercaseLetters = 'abcdefghijklmnopqrstuvwxyz'.ToCharArray()
+    $uppercaseLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.ToCharArray()
+    $digits = '0123456789'.ToCharArray()
+    $symbols = '!@#$%^&*()-_=+[]{}:;,.?'.ToCharArray()
+    $characterSets = @($lowercaseLetters, $uppercaseLetters, $digits, $symbols)
+    $allPasswordCharacters = $lowercaseLetters + $uppercaseLetters + $digits + $symbols
+    $passwordCharacters = [System.Collections.Generic.List[char]]::new()
+    $randomNumberGenerator = [Security.Cryptography.RandomNumberGenerator]::Create()
+
+    try {
+        foreach ($characterSet in $characterSets) {
+            $index = Get-SecureRandomIndex `
+                -ExclusiveMaximum $characterSet.Count `
+                -RandomNumberGenerator $randomNumberGenerator
+
+            [void]$passwordCharacters.Add($characterSet[$index])
         }
 
-        $passwordText = ConvertFrom-SecureStringToPlainText -SecureString $password
-        $confirmationText = ConvertFrom-SecureStringToPlainText -SecureString $confirmation
-        $passwordsMatch = $passwordText -ceq $confirmationText
-        $passwordText = $null
-        $confirmationText = $null
+        while ($passwordCharacters.Count -lt $Length) {
+            $index = Get-SecureRandomIndex `
+                -ExclusiveMaximum $allPasswordCharacters.Count `
+                -RandomNumberGenerator $randomNumberGenerator
 
-        if ($passwordsMatch) {
-            return $password
+            [void]$passwordCharacters.Add($allPasswordCharacters[$index])
         }
 
-        Write-Host 'Passwords did not match. Try again.' -ForegroundColor Yellow
+        for ($index = $passwordCharacters.Count - 1; $index -gt 0; $index--) {
+            $swapIndex = Get-SecureRandomIndex `
+                -ExclusiveMaximum ($index + 1) `
+                -RandomNumberGenerator $randomNumberGenerator
+
+            if ($swapIndex -ne $index) {
+                $currentCharacter = $passwordCharacters[$index]
+                $passwordCharacters[$index] = $passwordCharacters[$swapIndex]
+                $passwordCharacters[$swapIndex] = $currentCharacter
+            }
+        }
+
+        return (-join $passwordCharacters)
+    }
+    finally {
+        if ($null -ne $randomNumberGenerator) {
+            $randomNumberGenerator.Dispose()
+        }
     }
 }
 
@@ -958,7 +992,9 @@ try {
         }
 
         Write-Section -Message 'Password'
-        $newPassword = Read-NewPassword
+        Write-Step 'Generating a random 32-character password...'
+        $newPasswordPlainText = New-RandomPassword -Length 32
+        $newPassword = ConvertTo-SecureString -String $newPasswordPlainText -AsPlainText -Force
 
         Write-Step 'Changing the user password...'
         Set-ADAccountPassword -Identity $user.DistinguishedName -Reset -NewPassword $newPassword -ErrorAction Stop
@@ -1010,7 +1046,10 @@ try {
         Write-DetailLine -Label 'Account disabled' -Value 'Yes'
         Write-DetailLine -Label 'Address lists' -Value $addressListVisibility
         Write-DetailLine -Label 'Password reset' -Value 'Yes'
+        Write-DetailLine -Label 'Generated password' -Value $newPasswordPlainText
         Write-DetailLine -Label 'Password never expires' -Value 'Yes'
+
+        $newPasswordPlainText = $null
 
         if ($movedToOu) {
             Write-DetailLine -Label 'Move result' -Value "Moved to $movedToOu"
