@@ -6,3 +6,4 @@ x 2026-08-21 2026-08-21 make the summary more human readable due:2026-08-21 @fix
 x 2026-09-01 2026-08-21 add option to run again after the end for processing multiple users one by one @feat +disable_user
 x 2026-09-01 2026-08-21 option to search for username based on users first and/or last name @feat +disable_user
 x 2026-09-02 2026-09-02 automatically generate password for resetting user password +disable_user @feat
+x 2026-10-19 2026-08-21 create a powershell scripts skill for creating scripts in this repo @feat +skill
