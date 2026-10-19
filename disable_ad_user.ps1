@@ -13,6 +13,14 @@ user to a selected Organizational Unit.
 This script is intended to be run on a domain controller from an elevated
 PowerShell window by an account with permission to modify users, groups, and
 Organizational Unit placement.
+
+Reads and writes use one domain controller. The script verifies changed account
+properties before reporting completion. Use -Verbose in an elevated session to
+trace the script path, controller, object GUID, and refreshed account state.
+
+.EXAMPLE
+.\disable_ad_user.ps1 -Verbose
+Runs the interactive workflow with refresh diagnostics in an elevated session.
 #>
 
 [CmdletBinding()]
@@ -52,10 +60,10 @@ function Write-Section {
         [string]$Message
     )
 
-    Write-Output ''
-    Write-Output '-------------------------------------------------------------------------------------------'
-    Write-Output " $Message"
-    Write-Output '-------------------------------------------------------------------------------------------'
+    Write-Host ''
+    Write-Host '-------------------------------------------------------------------------------------------'
+    Write-Host " $Message"
+    Write-Host '-------------------------------------------------------------------------------------------'
 }
 
 function Write-Step {
@@ -80,7 +88,7 @@ function Write-DetailLine {
 
     $displayValue = Get-DisplayValue -Value $Value -Fallback $Fallback
 
-    Write-Output ('  {0,-22} {1}' -f ('{0}:' -f $Label), $displayValue)
+    Write-Host ('  {0,-22} {1}' -f ('{0}:' -f $Label), $displayValue)
 }
 
 function Get-DisplayValue {
@@ -484,6 +492,8 @@ function Get-RefreshedAdUser {
         [AllowNull()]
         [object]$ExpectedEnabled = $null,
 
+        [hashtable]$ExpectedProperties = @{},
+
         [ValidateRange(1, 30)]
         [int]$MaxAttempts = 1,
 
@@ -500,6 +510,7 @@ function Get-RefreshedAdUser {
     $refreshedUser = $null
 
     for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        Write-Verbose "Refreshing object '$objectGuid' from '$script:AdServer' (attempt $attempt of $MaxAttempts)."
         $users = @(
             Get-ADUser `
                 -LDAPFilter "(objectGUID=$ldapGuid)" `
@@ -513,24 +524,33 @@ function Get-RefreshedAdUser {
         }
 
         $refreshedUser = $users[0]
+        $isEnabled = Test-AdUserIsEnabled -User $refreshedUser
+        Write-Verbose "Read '$($refreshedUser.SamAccountName)': GUID='$($refreshedUser.ObjectGUID)'; Enabled=$isEnabled; Description='$($refreshedUser.Description)'; PasswordNeverExpires=$($refreshedUser.PasswordNeverExpires); PrimaryGroupID=$($refreshedUser.PrimaryGroupID); DN='$($refreshedUser.DistinguishedName)'."
 
-        if ($null -eq $ExpectedEnabled) {
+        $mismatches = [System.Collections.Generic.List[string]]::new()
+        if ($null -ne $ExpectedEnabled -and $isEnabled -ne [bool]$ExpectedEnabled) {
+            [void]$mismatches.Add("Enabled: expected '$([bool]$ExpectedEnabled)', observed '$isEnabled'")
+        }
+
+        foreach ($propertyName in $ExpectedProperties.Keys) {
+            $expectedValue = $ExpectedProperties[$propertyName]
+            $observedValue = $refreshedUser.$propertyName
+            if ($null -eq $observedValue -or $observedValue -ne $expectedValue) {
+                [void]$mismatches.Add("${propertyName}: expected '$expectedValue', observed '$observedValue'")
+            }
+        }
+
+        if ($mismatches.Count -eq 0) {
             return $refreshedUser
         }
 
-        if ((Test-AdUserIsEnabled -User $refreshedUser) -eq [bool]$ExpectedEnabled) {
-            return $refreshedUser
-        }
-
+        Write-Verbose ($mismatches -join '; ')
         if ($attempt -lt $MaxAttempts) {
             Start-Sleep -Seconds $DelaySeconds
         }
     }
 
-    $expectedStatus = if ([bool]$ExpectedEnabled) { 'enabled' } else { 'disabled' }
-    Write-Warning "AD did not report '$($User.SamAccountName)' as $expectedStatus after refresh attempts."
-
-    return $refreshedUser
+    throw "Could not verify '$($User.SamAccountName)' (GUID '$objectGuid') on '$script:AdServer' after $MaxAttempts refresh attempt(s). $($mismatches -join '; ')"
 }
 
 function Search-AdUsersByName {
@@ -601,10 +621,7 @@ function Select-TargetAdUser {
         }
 
         Write-Step "No exact username or UPN match was found for '$identity'. Searching by partial first or last name..."
-        $matchingUsers = @(
-            Search-AdUsersByName -Name $identity |
-                ForEach-Object { Get-RefreshedAdUser -User $_ }
-        )
+        $matchingUsers = @(Search-AdUsersByName -Name $identity)
 
         if ($matchingUsers.Count -eq 0) {
             Write-Host "No users were found with a first or last name containing '$identity'. Try again." -ForegroundColor Yellow
@@ -664,26 +681,26 @@ function Confirm-TargetAdUser {
         -DistinguishedName $User.DistinguishedName
     $objectGuid = if ($null -eq $User.ObjectGUID) { '' } else { $User.ObjectGUID.ToString() }
 
-    Write-Output 'Please review the selected account before any changes are made:'
-    Write-Output ''
+    Write-Host 'Please review the selected account before any changes are made:'
+    Write-Host ''
 
-    Write-Output 'Identity'
+    Write-Host 'Identity'
     Write-DetailLine -Label 'First name' -Value $User.GivenName -Fallback 'Not set'
     Write-DetailLine -Label 'Last name' -Value $User.Surname -Fallback 'Not set'
     Write-DetailLine -Label 'Display name' -Value $User.DisplayName -Fallback $User.SamAccountName
     Write-DetailLine -Label 'Username' -Value $User.SamAccountName
     Write-DetailLine -Label 'Sign-in address' -Value $User.UserPrincipalName -Fallback 'Not set'
-    Write-Output ''
+    Write-Host ''
 
-    Write-Output 'Account'
+    Write-Host 'Account'
     Write-DetailLine -Label 'Current status' -Value $accountStatus
     Write-DetailLine -Label 'Description' -Value $User.Description -Fallback 'No description set'
-    Write-Output ''
+    Write-Host ''
 
-    Write-Output 'Directory'
+    Write-Host 'Directory'
     Write-DetailLine -Label 'Current location' -Value $currentLocation
     Write-DetailLine -Label 'Object GUID' -Value $objectGuid -Fallback 'Not available'
-    Write-Output ''
+    Write-Host ''
 
     return (Read-YesNoPrompt -Prompt 'Is this the correct account to disable' -DefaultAnswer None)
 }
@@ -788,7 +805,7 @@ function Get-OptionalAdUserPropertyState {
     )
 
     try {
-        $propertyUser = Get-ADUser -Identity $User.DistinguishedName -Properties $PropertyName -ErrorAction Stop
+        $propertyUser = Get-ADUser -Identity $User.ObjectGUID -Properties $PropertyName -Server $script:AdServer -ErrorAction Stop
         $property = $propertyUser.PSObject.Properties[$PropertyName]
 
         if ($null -eq $property) {
@@ -1308,6 +1325,9 @@ try {
     }
 
     Write-Step 'Confirmed this PowerShell window is elevated.'
+    if (-not [string]::IsNullOrWhiteSpace($PSCommandPath)) {
+        Write-Verbose "Running script '$PSCommandPath' (last modified $((Get-Item -LiteralPath $PSCommandPath).LastWriteTimeUtc.ToString('o')))."
+    }
     Import-ActiveDirectoryModule
     $script:AdServer = Resolve-ActiveDirectoryServer
 
@@ -1354,12 +1374,12 @@ try {
 
         Write-Step 'Disabling the user account...'
         Disable-ADAccount -Identity $user.DistinguishedName -Server $script:AdServer -ErrorAction Stop
-        $user = Get-RefreshedAdUser -User $user -ExpectedEnabled $false -MaxAttempts 10 -DelaySeconds 2
+        $user = Get-RefreshedAdUser -User $user -ExpectedEnabled $false -ExpectedProperties @{ Description = $disabledDescription } -MaxAttempts 10 -DelaySeconds 2
 
         Write-Section -Message 'Address Lists'
         if (Read-YesNoPrompt -Prompt 'Hide this user from address lists' -DefaultAnswer Yes) {
             Write-Step 'Hiding the user from address lists...'
-            Set-ADUser -Identity $user.DistinguishedName -Replace @{ msExchHideFromAddressLists = $true } -ErrorAction Stop
+            Set-ADUser -Identity $user.DistinguishedName -Replace @{ msExchHideFromAddressLists = $true } -Server $script:AdServer -ErrorAction Stop
         }
         else {
             Write-Step 'Address list visibility left unchanged by operator selection.'
@@ -1453,7 +1473,7 @@ try {
         $newPassword = ConvertTo-SecureString -String $newPasswordPlainText -AsPlainText -Force
 
         Write-Step 'Changing the user password...'
-        Set-ADAccountPassword -Identity $user.DistinguishedName -Reset -NewPassword $newPassword -ErrorAction Stop
+        Set-ADAccountPassword -Identity $user.DistinguishedName -Reset -NewPassword $newPassword -Server $script:AdServer -ErrorAction Stop
         $newPasswordPlainText = $null
 
         Write-Step 'Setting password to never expire...'
@@ -1464,6 +1484,7 @@ try {
         Write-Section -Message 'Move User'
         $targetOu = Select-TargetOrganizationalUnit -User $user
         $movedToOu = $null
+        $expectedUserDn = $user.DistinguishedName
 
         if ($null -ne $targetOu) {
             $targetOuLocation = Get-ReadableDirectoryLocation `
@@ -1474,12 +1495,22 @@ try {
             Write-Step "Moving user to '$targetOuLocation'..."
             Move-ADObject -Identity $user.DistinguishedName -TargetPath $targetOu.DistinguishedName -Server $script:AdServer -ErrorAction Stop
             $movedToOu = $targetOuLocation
+            $previousParentDn = Get-ParentDistinguishedName -DistinguishedName $user.DistinguishedName
+            # Retain the escaped relative name and its trailing comma.
+            $relativeNamePrefix = $user.DistinguishedName.Substring(0, $user.DistinguishedName.Length - $previousParentDn.Length)
+            $expectedUserDn = $relativeNamePrefix + $targetOu.DistinguishedName
         }
         else {
             Write-Step 'OU move skipped by operator selection.'
         }
 
-        $user = Get-RefreshedAdUser -User $user -ExpectedEnabled $false -MaxAttempts 5 -DelaySeconds 1
+        $expectedFinalProperties = @{
+            Description = $disabledDescription
+            DistinguishedName = $expectedUserDn
+            PasswordNeverExpires = $true
+            PrimaryGroupID = 513
+        }
+        $user = Get-RefreshedAdUser -User $user -ExpectedEnabled $false -ExpectedProperties $expectedFinalProperties -MaxAttempts 5 -DelaySeconds 1
 
         Write-Section -Message 'Summary'
         $summaryGeneratedAt = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss', [Globalization.CultureInfo]::InvariantCulture)
