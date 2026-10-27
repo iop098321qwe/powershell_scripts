@@ -13,7 +13,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "GPL-3.0-or-later",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/iop098321qwe/powershell_scripts/issues"
