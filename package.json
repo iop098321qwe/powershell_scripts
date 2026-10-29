@@ -1,6 +1,6 @@
 {
   "name": "powershell_scripts",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "* This is a repository of powershell scripts to perform specific tasks. * PowerShell style",
   "main": "index.js",
   "scripts": {

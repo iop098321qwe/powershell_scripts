@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.0.7](https://github.com/iop098321qwe/powershell_scripts/compare/v0.0.6...v0.0.7) (2026-10-29)
+
+### Features
+
+* **disable-user:** add Active Directory disable script ([5dba10e](https://github.com/iop098321qwe/powershell_scripts/commit/5dba10e537d47eea9bf0163972d3aafc2e32f48f))
+* **skill:** add script building skill ([9d2c67a](https://github.com/iop098321qwe/powershell_scripts/commit/9d2c67a5fbcfae1d9405cab78897bd8dc6a54c2b))
+
 ## [0.0.6](https://github.com/iop098321qwe/powershell_scripts/compare/v0.0.5...v0.0.6) (2026-05-08)
 
 
